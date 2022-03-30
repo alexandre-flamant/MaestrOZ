@@ -41,8 +41,18 @@ local
       %  
 
          initT = {Record.foldR Partition fun {$ Note T} T + Node.duration end 0} % Initial partition duration
+         fun {Transform PartitionItem}
+            case {Label PartitionItem}
+            of note then 
+               {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/initT)}
+            [] silence then 
+               {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/initT)}
+            [] chord then
+               {Map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/initT)} end}}
+            end
+         end
       in
-         {Map Partition fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/initT)} end} % Scaling partition by the right amount
+         {Map Partition Transform} % Scaling partition by the right amount
       end
       
 
@@ -56,9 +66,19 @@ local
       %        Partition to which the transformation is applied on.
       % Return:
       %    Transformed partition
-      %   
-      
-         {Map Partition fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end} % Scaling partition by F
+      % 
+         fun {Transform PartitionItem}
+            case {Label PartitionItem}
+            of note then 
+               {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
+            [] silence then 
+               {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
+            [] chord then
+               {Map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end}}
+            end
+         end
+      in
+         {Map Partition Transform} % Scaling partition by the right amount
       end
       
 
@@ -68,7 +88,7 @@ local
       % Args:
       %    N (Int) 
       %        Number of times the note needs to be repeated.
-      %    Node (List)  
+      %    Node (ExtendedNote|ExtendedChord)  
       %        Note to which the transformation is applied on..
       % Return:
       %    Resulting partition
@@ -90,42 +110,41 @@ local
       % Return:
       %    Transformed partition
       %  
-         Notes = [note(name:c sharp:false) note(name:c sharp:true) note(name:d sharp:false)
-                  note(name:d sharp:true) note(name:e sharp:false) note(name:f sharp:false)
-                  note(name:f sharp:true) note(name:g sharp:false) note(name:g sharp:true)
-                  note(name:a sharp:false) note(name:a sharp:true) note(name:b sharp:false)]
-
-         fun {Index Note} 
-            fun {Aux Note L I}
-               case L
-               of nil then
-                   raise 'Could not find thz note' end
-               [] H|T then
-                  if {And (Note.name == H.name) (Note.sharp == H.sharp)} then I
-                  else {Aux Note T (I+1)}
-                  end
-               end
-            end
-         in
-            {Aux Note Notes 0}
-         end
+         
+         NamesToNum = name(c:0 d:2 e:4 f:5 g:7 a:9 b:11)
+         SharpToNum = sharp(false:0 true:1)
+         
+         NumToName  = num(0:c 1:c 2:d 3:d 4:e 5:f 6:f 7:g 8:g 9:a 10:a 11:a)
+         NumToSharp = num(0:false 1:true 2:false 3:true 4:false 5:false 6:true 7:false 8:true 9:false 10:true 11:false)
+         
 
          fun {Shift Note}
-            I NewNote NewName NewSharp NewOctave
+            I NewName NewSharp NewOctave
          in
-            I = {Index Note}
+            I = NamesToNum.(Note.name) + SharpToNum.(Note.sharp)
             NewNote = {List.nth Notes (I+N) mod 12}
-            NewName = NewNote.name
-            NewSharp = NewNote.sharp
+            NewName = NumToName.((I+N) mod 12)
+            NewSharp = NumToSharp.((I+N) mod 12)
             NewOctave = (I+N) div 12
             {Record.adjoinAt {Record.adjoinAt {Record.adjoinAt Note name NewName} sharp NewSharp} octave NewOctave}
          end
+
+         fun {Transform PartitionItem}
+            case {Label PartitionItem}
+            of note then 
+               {Shift PartitionItem}
+            [] silence then 
+               raise "Silence can not be transposed !" end
+            [] chord then
+               {Map PartitionItem Shift}
+            end
+         end
       in
-         {Aux N Partition}
+         {Map Transform}
       end
    
    in 
-      {Map Partition Shift}
+      skip
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
