@@ -1,0 +1,12 @@
+Notes = [note(name:c sharp:false)
+         note(name:c sharp:true)
+         note(name:d sharp:false)
+         note(name:d sharp:true)
+         note(name:e sharp:false)
+         note(name:f sharp:false)
+         note(name:f sharp:true)
+         note(name:g sharp:false)
+         note(name:g sharp:true)
+         note(name:a sharp:false)
+         note(name:a sharp:true)
+         note(name:b sharp:false)]
