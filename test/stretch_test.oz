@@ -16,8 +16,8 @@ fun {Stretch F Partition}
 	    {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
 	 [] silence then 
 	    {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
-	 [] chord then
-	    {Record.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end}
+	 [] '|' then
+	    {List.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end}
 	 else
 	    raise 'Stretch transformation error' end
 	 end
@@ -28,9 +28,9 @@ end
 
 Partition = [note(name:a octave:1 sharp:false duration:1.0 instrument:violon)
 	     note(name:b octave:2 sharp:false duration:2.0 instrument:violon)
-	     chord(note(name:c octave:3 sharp:false duration:3.0 instrument:violon)
-		   note(name:d octave:3 sharp:false duration:3.0 instrument:violon)
-		   note(name:e octave:3 sharp:false duration:3.0 instrument:violon))
+	     [note(name:c octave:3 sharp:false duration:3.0 instrument:violon)
+	      note(name:d octave:3 sharp:false duration:3.0 instrument:violon)
+	      note(name:e octave:3 sharp:false duration:3.0 instrument:violon)]
 	     note(name:d octave:4 sharp:false duration:4.0 instrument:violon)
 	     note(name:e octave:5 sharp:false duration:5.0 instrument:violon)]
 

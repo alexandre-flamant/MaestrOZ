@@ -13,7 +13,7 @@ fun {Duration T Partition}
    InitT = {List.foldR Partition fun {$ PartitionItem T}
 				    case {Label PartitionItem}
 				    of note then T + PartitionItem.duration
-				    [] chord then T + PartitionItem.1.duration
+				    [] '|' then T + PartitionItem.1.duration
 				    end
 				 end
 	    0.0} % Initial partition duration
@@ -24,8 +24,8 @@ fun {Duration T Partition}
 	    {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/InitT)}
 	 [] silence then 
 	    {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/InitT)}
-	 [] chord then
-	    {Record.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/InitT)} end}
+	 [] '|' then
+	    {List.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/InitT)} end}
 	 else
 	    {Show 'Duration transformation'}
 	    {Show 'PartitionItem:'}
@@ -40,9 +40,9 @@ end
 
 Partition = [note(name:a octave:1 sharp:false duration:1.0 instrument:violon)
 	     note(name:b octave:2 sharp:false duration:2.0 instrument:violon)
-	     chord(note(name:c octave:3 sharp:false duration:3.0 instrument:violon)
-		   note(name:d octave:3 sharp:false duration:3.0 instrument:violon)
-		   note(name:e octave:3 sharp:false duration:3.0 instrument:violon))
+	     [note(name:c octave:3 sharp:false duration:3.0 instrument:violon)
+	      note(name:d octave:3 sharp:false duration:3.0 instrument:violon)
+	      note(name:e octave:3 sharp:false duration:3.0 instrument:violon)]
 	     note(name:d octave:4 sharp:false duration:4.0 instrument:violon)
 	     note(name:e octave:5 sharp:false duration:5.0 instrument:violon)]
 

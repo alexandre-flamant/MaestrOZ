@@ -1,13 +1,14 @@
+% Flamant Alexandre 5308 1500
 local
    % See project statement for API details.
    [Project] = {Link ['Project2022.ozf']}
    Time = {Link ['x-oz://boot/Time']}.1.getReferenceTime
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                           Data Type Conversion                            %
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    % Translate a note to the extended notation.
-   declare
-
    fun {NoteToExtended Note}
       case Note
       of Name#Octave then
@@ -27,7 +28,7 @@ local
    end
 
    fun {ChordToExtended Chord}
-      chord({Map Chord NoteToExtended})
+      {Map Chord NoteToExtended}
    end
 
    fun {ToExtended Item}
@@ -56,7 +57,7 @@ local
       InitT = {List.foldR Partition fun {$ PartitionItem T}
                                        case {Label PartitionItem}
                                        of note then T + PartitionItem.duration
-                                       [] chord then T + PartitionItem.1.duration
+                                       [] '|' then T + PartitionItem.1.duration
                                        end
                                     end
                0.0} % Initial partition duration
@@ -68,8 +69,8 @@ local
             {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/InitT)}
          [] silence then % If it is a silence we just change its duration
             {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/InitT)}
-         [] chord then % If it is a chord we change the duration of all notes by mapping
-            {Record.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/InitT)} end}
+         [] '|' then % If it is a chord we change the duration of all notes by mapping
+            {List.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/InitT)} end}
          else
             raise 'Duration transformation error' end
          end
@@ -98,8 +99,8 @@ local
             {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
          [] silence then % If it is a silence we just change its duration
             {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
-         [] chord then % If it is a chord we change the duration of all notes by mapping
-            {Record.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end}
+         [] '|' then % If it is a chord we change the duration of all notes by mapping
+            {List.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end}
          else
             raise 'Stretch transformation error' end
          end
@@ -110,17 +111,17 @@ local
 
 
    fun {Drone PartitionItem N}
-      %
-      % Repeat a Note multiple times
-      % Args:
-      %    Node (ExtendedNote|ExtendedChord)  
-      %        Note to which the transformation is applied on.
-      %    N (Int) 
-      %        Number of times the note needs to be repeated.
-      % Return:
-      %    Resulting partition
-      %   
-      
+   %
+   % Repeat a Note multiple times
+   % Args:
+   %    Node (ExtendedNote|ExtendedChord)  
+   %        Note to which the transformation is applied on.
+   %    N (Int) 
+   %        Number of times the note needs to be repeated.
+   % Return:
+   %    Resulting partition
+   %   
+   
       if N=<0 then nil
       else PartitionItem|{Drone PartitionItem N-1}
       end
@@ -165,8 +166,8 @@ local
             {Shift PartitionItem}
          [] silence then  % If it is a silence we do nothing
             PartitionItem
-         [] chord then % If it is a chord we shift all notes (there should not be any silence in chords)
-            {Record.map PartitionItem Shift}
+         [] '|' then % If it is a chord we shift all notes (there should not be any silence in chords)
+            {List.map PartitionItem Shift}
          else
             raise 'Transpose transformation error' end
          end
@@ -175,10 +176,12 @@ local
       {Map Partition Transform}
    end
 
-   
+
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                            Partition Creation                             %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   fun {PartitionToTimedList Partition}     
+   fun {PartitionToTimedList Partition}    
       fun {Transform PartitionItem}
          case PartitionItem
          of H|T then {Map PartitionItem NoteToExtended}
@@ -196,11 +199,6 @@ local
       {Show 'PartitionItem:'}
       {Show PartitionItem}
       nil
-         end
-      end
-      
-   in 
-      {Flatten {Map Transform Partition}}
    end
 
 

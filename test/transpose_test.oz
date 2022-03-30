@@ -34,8 +34,8 @@ fun {Transpose N Partition}
 	 {Shift PartitionItem}
       [] silence then 
 	 raise "Silence can not be transposed !" end
-      [] chord then
-	 {Record.map PartitionItem Shift}
+      [] '|' then
+	 {List.map PartitionItem Shift}
       else
 	 raise 'Transpose transformation error' end
       end
@@ -46,9 +46,9 @@ end
 
 Partition = [note(name:a octave:1 sharp:false duration:1.0 instrument:violon)
 	     note(name:b octave:1 sharp:false duration:2.0 instrument:violon)
-	     chord(note(name:c octave:1 sharp:false duration:3.0 instrument:violon)
-		   note(name:d octave:1 sharp:false duration:3.0 instrument:violon)
-		   note(name:e octave:1 sharp:false duration:3.0 instrument:violon))
+	     [note(name:c octave:1 sharp:false duration:3.0 instrument:violon)
+	      note(name:d octave:1 sharp:false duration:3.0 instrument:violon)
+	      note(name:e octave:1 sharp:false duration:3.0 instrument:violon)]
 	     note(name:f octave:1 sharp:false duration:4.0 instrument:violon)
 	     note(name:g octave:1 sharp:false duration:5.0 instrument:violon)]
 

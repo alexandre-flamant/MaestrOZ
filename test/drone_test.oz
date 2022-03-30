@@ -17,9 +17,9 @@ fun {Drone PartitionItem N}
 end
 
 Note = note(name:a octave:1 sharp:false duration:1.0 instrument:violon)
-Chord = chord(note(name:c octave:3 sharp:false duration:3.0 instrument:violon)
-	      note(name:d octave:3 sharp:false duration:3.0 instrument:violon)
-	      note(name:e octave:3 sharp:false duration:3.0 instrument:violon))
+Chord = [note(name:c octave:3 sharp:false duration:3.0 instrument:violon)
+	  note(name:d octave:3 sharp:false duration:3.0 instrument:violon)
+	  note(name:e octave:3 sharp:false duration:3.0 instrument:violon)]
 
 {Browse {Drone Chord 3}}
 {Browse {Drone Note 5}}
