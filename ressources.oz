@@ -13,7 +13,7 @@ Notes = [note(name:c sharp:false)
          note(name:b sharp:false)]
 
 %Example of extended notations
-Note = note(name:pi octave:8 sharp:true duration:2.4 instrument:violon)
+Note = note(name:a octave:8 sharp:true duration:2.4 instrument:violon)
 Chord = chord(note(name:a octave:8 sharp:true duration:2.4 instrument:piano)
               note(name:a octave:7 sharp:true duration:2.4 instrument:violon)
               note(name:a octave:6 sharp:true duration:2.4 instrument:guitar))
