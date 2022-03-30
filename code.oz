@@ -27,36 +27,69 @@ local
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    fun {PartitionToTimedList Partition}
-      fun {Duration T Partition}  
-         initT = {Record.foldR Partition fun {$ Note T} T + Node.duration end 0}
-         fun {Aux L Acc}
-            case L
-            of nil then nil
-            [] H|T then {Record.adjoinAt H duration (H.duration * T/initT)}|{Aux T}
-            end
-         end
+      
+      fun {Duration T Partition}
+      %
+      % Set the duration of a partition
+      % Args:
+      %    T (Float) 
+      %        New duration of the partition in seconds.
+      %    Partition (List)  
+      %        Partition to which the transformation is applied on.
+      % Return:
+      %    Transformed partition
+      %  
+
+         initT = {Record.foldR Partition fun {$ Note T} T + Node.duration end 0} % Initial partition duration
       in
-         {Aux Partition}         
+         {Map Partition fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/initT)} end} % Scaling partition by the right amount
       end
       
-      fun {stretch F Partition} 
-         fun {Aux L Acc}
-            case L
-            of nil then nil
-            [] H|T then {Record.adjoinAt H duration (F * H.duration)}|{Aux T}
-            end
-         end
-      in
-         {Aux Partition}
+
+      fun {stretch F Partition}
+      %
+      % Stetch the partition by a desired factor
+      % Args:
+      %    F (Float) 
+      %        Stretch factor for the transformation. F<1 leads to a shorter partition while F>1 leads to a longer partition.
+      %    Partition (List)  
+      %        Partition to which the transformation is applied on.
+      % Return:
+      %    Transformed partition
+      %   
+      
+         {Map Partition fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end} % Scaling partition by F
       end
       
-      fun {Drone N Note} 
+
+      fun {Drone N Note}
+      %
+      % Repeat a Note multiple times
+      % Args:
+      %    N (Int) 
+      %        Number of times the note needs to be repeated.
+      %    Node (List)  
+      %        Note to which the transformation is applied on..
+      % Return:
+      %    Resulting partition
+      %   
+      
          if N<=0 then nil
          else Note|{Drone (N-1) Note}
          end
       end
 
-      fun {Transpose N Partition} 
+      fun {Transpose N Partition}
+      %
+      % Shift the partition by a number of semitone
+      % Args:
+      %    N (Int) 
+      %        Number of demitone to shift the partition by.
+      %    Partition (List)  
+      %        Partition to which the transformation is applied on.
+      % Return:
+      %    Transformed partition
+      %  
          Notes = [note(name:c sharp:false) note(name:c sharp:true) note(name:d sharp:false)
                   note(name:d sharp:true) note(name:e sharp:false) note(name:f sharp:false)
                   note(name:f sharp:true) note(name:g sharp:false) note(name:g sharp:true)
@@ -77,24 +110,22 @@ local
             {Aux Note Notes 0}
          end
 
-         fun {Aux N L}
-            I
-            NewNote
+         fun {Shift Note}
+            I NewNote NewName NewSharp NewOctave
          in
-            case L
-            of nil then nil
-            [] H|T then 
-               I = {Index H}
-               NewNote = {List.nth Notes (I+N) mod 12}
-               {Record.adjoinAt {Record.adjoinAt {Record.adjoinAt H name NewNote.name} sharp NewNote.sharp} ((I+N) div 12)}|{Aux T}
-            end
+            I = {Index Note}
+            NewNote = {List.nth Notes (I+N) mod 12}
+            NewName = NewNote.name
+            NewSharp = NewNote.sharp
+            NewOctave = (I+N) div 12
+            {Record.adjoinAt {Record.adjoinAt {Record.adjoinAt Note name NewName} sharp NewSharp} octave NewOctave}
          end
       in
          {Aux N Partition}
       end
    
    in 
-      skip
+      {Map Partition Shift}
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
