@@ -27,7 +27,7 @@ local
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    fun {PartitionToTimedList Partition}
-      
+
       fun {Duration T Partition}
       %
       % Set the duration of a partition
@@ -38,9 +38,8 @@ local
       %        Partition to which the transformation is applied on.
       % Return:
       %    Transformed partition
-      %  
-
-         initT = {Record.foldR Partition fun {$ Note T} T + Node.duration end 0} % Initial partition duration
+      %   
+         initT = {Record.foldR Partition fun {$ Note T} T + Note.duration end 0} % Initial partition duration
          fun {Transform PartitionItem}
             case {Label PartitionItem}
             of note then 
@@ -48,14 +47,13 @@ local
             [] silence then 
                {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/initT)}
             [] chord then
-               {Map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/initT)} end}}
+               {Map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/initT)} end}
             end
          end
       in
          {Map Partition Transform} % Scaling partition by the right amount
       end
-      
-
+   
       fun {Stretch F Partition}
       %
       % Stetch the partition by a desired factor
@@ -68,20 +66,20 @@ local
       %    Transformed partition
       % 
          fun {Transform PartitionItem}
-            case {Label PartitionItem}
-            of note then 
-               {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
-            [] silence then 
-               {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
-            [] chord then
-               {Map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end}}
-            end
+         case {Label PartitionItem}
+         of note then 
+            {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
+         [] silence then 
+            {Record.adjoinAt PartitionItem duration (PartitionItem.duration * F)}
+         [] chord then
+            {Map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * F)} end}
+         end
          end
       in
          {Map Partition Transform} % Scaling partition by the right amount
       end
+   
       
-
       fun {Drone N Note}
       %
       % Repeat a Note multiple times
@@ -93,12 +91,12 @@ local
       % Return:
       %    Resulting partition
       %   
-      
-         if N<=0 then nil
+   
+         if N=<0 then nil
          else Note|{Drone (N-1) Note}
          end
       end
-
+      
       fun {Transpose N Partition}
       %
       % Shift the partition by a number of semitone
@@ -110,25 +108,24 @@ local
       % Return:
       %    Transformed partition
       %  
-         
+   
          NamesToNum = name(c:0 d:2 e:4 f:5 g:7 a:9 b:11)
          SharpToNum = sharp(false:0 true:1)
          
          NumToName  = num(0:c 1:c 2:d 3:d 4:e 5:f 6:f 7:g 8:g 9:a 10:a 11:a)
          NumToSharp = num(0:false 1:true 2:false 3:true 4:false 5:false 6:true 7:false 8:true 9:false 10:true 11:false)
          
-
+         
          fun {Shift Note}
             I NewName NewSharp NewOctave
          in
             I = NamesToNum.(Note.name) + SharpToNum.(Note.sharp)
-            NewNote = {List.nth Notes (I+N) mod 12}
             NewName = NumToName.((I+N) mod 12)
             NewSharp = NumToSharp.((I+N) mod 12)
             NewOctave = (I+N) div 12
             {Record.adjoinAt {Record.adjoinAt {Record.adjoinAt Note name NewName} sharp NewSharp} octave NewOctave}
          end
-
+         
          fun {Transform PartitionItem}
             case {Label PartitionItem}
             of note then 
@@ -140,9 +137,9 @@ local
             end
          end
       in
-         {Map Transform}
+         {Map Partition Transform}
       end
-   
+      
    in 
       skip
    end
