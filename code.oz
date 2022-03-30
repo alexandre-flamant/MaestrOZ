@@ -46,7 +46,7 @@ local
       end
       
 
-      fun {stretch F Partition}
+      fun {Stretch F Partition}
       %
       % Stetch the partition by a desired factor
       % Args:
