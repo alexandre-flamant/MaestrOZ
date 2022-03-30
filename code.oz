@@ -30,13 +30,13 @@ local
    fun {ChordToExtended Chord}
       {Map Chord NoteToExtended}
    end
-
+   
    fun {ToExtended Item}
       case Item
       of H|T then {ChordToExtended Item}
-      else {NoteToExtended Item}
-      end
-   end
+      else  {NoteToExtended Item}
+      end   
+   end   
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                           Transformations                                 %
@@ -182,31 +182,35 @@ local
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    fun {PartitionToTimedList Partition}    
-      fun {Transform PartitionItem}
+      ReversedPartition = {List.reverse Partition.1}
+      FlatPartition = {NewCell nil}
+   in
+      for PartitionItem in ReversedPartition do
          case PartitionItem
-         of H|T then {Map PartitionItem NoteToExtended}
-         [] duration(seconds:T Partition) then
-      {Duration T {Map Partition ToExtended}}
+         of duration(seconds:T Partition) then
+            {Browse 'duration'}
+            FlatPartition := {List.append {Duration T {Map Partition ToExtended}} @FlatPartition}
          [] stretch(factor:F Partition) then
-      {Stretch F {Map Partition ToExtended}}
+            {Browse 'stretch'}
+            FlatPartition := {List.append {Stretch F {Map Partition ToExtended}} @FlatPartition}
          [] drone(note:Note amount:N) then
-      {Drone {ToExtended Note} N}
+            {Browse 'drone'}
+            FlatPartition := {List.append {Drone Note N} @FlatPartition}
          [] transpose(semitones:N Partition) then
-      {Transpose N {Map ToExtended Partition}}
-         [] Atom then {NoteToExtended PartitionItem}
+            {Browse 'transpose'}
+            FlatPartition := {List.append {Transpose N {Map Partition ToExtended}} @FlatPartition}
          else
-      {Show 'Main function'}
-      {Show 'PartitionItem:'}
-      {Show PartitionItem}
-      nil
+            FlatPartition := {ToExtended PartitionItem}|@FlatPartition
+         end   
+      end
+      @FlatPartition
    end
-
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    fun {Mix P2T Music}
-      % TODO
-      {Project.readFile 'wave/animals/cow.wav'}
+      {Browse {P2T Music.1}}
+      nil
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
