@@ -45,6 +45,7 @@ local
    fun {Duration T Partition}
    %
    % Set the duration of a partition
+   %
    % Args:
    %    T (Float) 
    %        New duration of the partition in seconds.
@@ -83,6 +84,7 @@ local
    fun {Stretch F Partition}
    %
    % Stetch the partition by a desired factor
+   %
    % Args:
    %    F (Float) 
    %        Stretch factor for the transformation. F<1 leads to a shorter partition while F>1 leads to a longer partition.
@@ -113,6 +115,7 @@ local
    fun {Drone PartitionItem N}
    %
    % Repeat a Note multiple times
+   %
    % Args:
    %    Node (ExtendedNote|ExtendedChord)  
    %        Note to which the transformation is applied on.
@@ -131,6 +134,7 @@ local
    fun {Transpose N Partition}
    %
    % Shift the partition by a number of semitone
+   %
    % Args:
    %    N (Int) 
    %        Number of demitone to shift the partition by.
@@ -205,6 +209,119 @@ local
       end
       @FlatPartition
    end
+
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                             Sound generation                              %
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+   fun {Pitch Note}
+   %
+   % Compute the pitch of a Note. That is the number of semitones between that
+   % note and A4.
+   %
+   % Args:
+   %    Note (ExtendedNote) 
+   %       Note to compute the pitch of.
+   % Return: (Integer)
+   %    Pitch of the note 
+   %  
+      % Table for note to integer conversion
+      NamesToNum = name(c:0 d:2 e:4 f:5 g:7 a:9 b:11)
+      SharpToNum = sharp(false:0 true:1)
+
+      A4Pitch = 4*12 + 9 + 0 % 57
+      NotePitch
+   in
+      NotePitch = Note.octave * 12 + NamesToNum.(Note.name) + SharpToNum.(Note.sharp)
+      NotePitch - A4Pitch
+   end
+   
+
+   fun {Frequency Note}
+   %
+   % Compute the frequency of a note based on its Note.
+   %
+   % Args:
+   %    Note (ExtendedNote)
+   %        Note to compute the frequency of..
+   % Return: (Float)
+   %    Frequency of the note.
+   %  
+      
+      NotePitch = {Pitch Note}
+   in
+      {Number.pow 2 (NotePitch/12.0)} * 440.0
+   end
+
+
+   fun {NoteSample Note}
+   %
+   % Compute the sample of a note based on its Note.
+   % Values ai are bounded to the interval [-1.0 1.0]
+   %
+   % Args:
+   %    Note (ExtendedNote)
+   %        Note to compute the  sample of.
+   % Return: (List(Float))
+   %    Sample of the note.
+   %  
+      Sample = {NewCell nil}
+      NoteFrequency = {Frequency Note}
+      Pi = 3.14159265359
+   in
+      for I in {Float.toInt {Float.round 44100.0 * Note.duration}}-1 .. 0; ~1 do
+         Sample := 0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/44100.0)}|@Sample
+      end
+      @Sample
+   end
+
+
+   fun {SilenceSample Silence}
+   %
+   % Compute the sample of a Silence.
+   % Values ai of a silence is always equal to 0.0
+   %
+   % Args:
+   %    Silence (ExtendedNote)
+   %        Silence to compute the sample of.
+   % Return: (List(Float))
+   %    Sample of the Silence.
+   %  
+      Sample = {NewCell nil}
+   in
+      for I in {Float.toInt {Float.round 44100.0 * Silence.duration}}-1 .. 0; ~1 do
+         Sample := 0.0|@Sample
+      end
+      @Sample
+   end
+
+   fun {ChordSample Chord}
+   %
+   % Compute the sample of a Chord.
+   % Values ai of a chord is bounded to the interval [-1.0 1.0].
+   % These coefficient are calculated as the mean of the intensity
+   % of all notes played by the chord.
+   %
+   % Args:
+   %    Silence (ExtendedNote)
+   %        Silence to compute the sample of.
+   % Return: (List(Float))
+   %    Sample of the Silence.
+   % 
+      Sample = {NewCell nil}
+      Pi = 3.14159265359
+      fun {Ai Note} 
+         NoteFrequency = {Frequency Note}
+      in
+         0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/44100.0)}
+      end
+   in
+      for I in {Float.toInt {Float.round 44100.0 * Chord.1.duration}}-1 .. 0; ~1 do
+         Sample := ({List.foldR {Map Chord AI} fun {$ X Y} X + Y end 0}/{List.length Chord})|@Sample
+      end
+      @Sample
+   end
+
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
