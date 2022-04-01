@@ -327,6 +327,58 @@ local
    %                                 Filters                                   %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+   fun {Reverse Music}
+      {List.reverse Music}
+   end
+
+   fun {Repeat N Music}
+      Sample = {NewCell Music}
+   in
+      for I in 1..(N-1) do
+         Sample := {List.append @Sample Music}
+      end
+      @Sample
+   end
+
+   fun {Loop T Music}
+      Lenght = {List.length Music}
+      MusicTuple = {List.toTuple '#' Music}
+      Sample = {NewCell nil}
+   in
+      for I in 1..{Float.toInt (44100.0 * T)} do
+         Sample := MusicTuple.I|@Sample 
+      end
+      {List.reverse @Sample}
+   end
+
+   fun {Clip Low High Music}
+      ReversedMusic = {List.reverse Music}
+      ClippedMusic = {NewCell nil}
+   in
+      for Ai in ReversedMusic do
+         if Ai < Low then ClippedMusic := Low|@ClippedMusic
+         elseif Ai > High then ClippedMusic := High|@ClippedMusic
+         else ClippedMusic := Ai|@ClippedMusic
+         end
+      end
+      @ClippedMusic
+   end
+
+   fun {Echo Delay Decay Music}
+      skip
+      nil
+   end
+
+   fun {Fade Start Out Music}
+      skip
+      nil
+   end
+
+   fun {Cut Start Finish Music}
+      skip
+      nil
+   end
+
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                                  Mixing                                   %
@@ -341,7 +393,7 @@ local
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   Music = {Project.load 'joy.dj.oz'}
+   Music = {Project.load 'joyfast.dj.oz'}
    Start
 
    % Uncomment next line to insert your tests.
