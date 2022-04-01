@@ -192,16 +192,16 @@ local
       for PartitionItem in ReversedPartition do
          case PartitionItem
          of duration(seconds:T Partition) then
-            {Browse 'duration'}
+            %{Browse 'duration'}
             FlatPartition := {List.append {Duration T {Map Partition ToExtended}} @FlatPartition}
          [] stretch(factor:F Partition) then
-            {Browse 'stretch'}
+            %{Browse 'stretch'}
             FlatPartition := {List.append {Stretch F {Map Partition ToExtended}} @FlatPartition}
          [] drone(note:Note amount:N) then
-            {Browse 'drone'}
+            %{Browse 'drone'}
             FlatPartition := {List.append {Drone Note N} @FlatPartition}
          [] transpose(semitones:N Partition) then
-            {Browse 'transpose'}
+            %{Browse 'transpose'}
             FlatPartition := {List.append {Transpose N {Map Partition ToExtended}} @FlatPartition}
          else
             FlatPartition := {ToExtended PartitionItem}|@FlatPartition
@@ -248,9 +248,9 @@ local
    %    Frequency of the note.
    %  
       
-      NotePitch = {Pitch Note}
+      NotePitch = {Int.toFloat {Pitch Note}}
    in
-      {Number.pow 2 (NotePitch/12.0)} * 440.0
+      {Number.pow 2.0 (NotePitch/12.0)} * 440.0
    end
 
 
@@ -310,6 +310,7 @@ local
    % 
       Sample = {NewCell nil}
       Pi = 3.14159265359
+      I
       fun {Ai Note} 
          NoteFrequency = {Frequency Note}
       in
@@ -317,17 +318,25 @@ local
       end
    in
       for I in {Float.toInt {Float.round 44100.0 * Chord.1.duration}}-1 .. 0; ~1 do
-         Sample := ({List.foldR {Map Chord AI} fun {$ X Y} X + Y end 0}/{List.length Chord})|@Sample
+         Sample := ({List.foldR {Map Chord Ai} fun {$ X Y} X + Y end 0}/{List.length Chord})|@Sample
       end
       @Sample
    end
 
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                                 Filters                                   %
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                                  Mixing                                   %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    fun {Mix P2T Music}
-      {Browse {P2T Music.1}}
-      nil
+      Partition = {P2T Music.1}
+   in
+      {Browse Partition}
+      {Flatten {List.map Partition NoteSample}}
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -346,7 +355,7 @@ in
 
    % Add variables to this list to avoid "local variable used only once"
    % warnings.
-   {ForAll [NoteToExtended Music] Wait}
+   {ForAll [NoteToExtended Music SilenceSample ChordSample] Wait}
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
