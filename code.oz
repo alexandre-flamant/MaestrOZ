@@ -3,6 +3,12 @@ local
    % See project statement for API details.
    [Project] = {Link ['Project2022.ozf']}
    Time = {Link ['x-oz://boot/Time']}.1.getReferenceTime
+   
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                             Control variables                             %
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+   SamplingSize = 44100.0
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                           Data Type Conversion                            %
@@ -193,16 +199,16 @@ local
          case PartitionItem
          of duration(seconds:T Partition) then
             %{Browse 'duration'}
-            FlatPartition := {List.append {Duration T {Map Partition ToExtended}} @FlatPartition}
+            FlatPartition := {List.append {Duration T {PartitionToTimedList PartitionItem}} @FlatPartition}
          [] stretch(factor:F Partition) then
             %{Browse 'stretch'}
-            FlatPartition := {List.append {Stretch F {Map Partition ToExtended}} @FlatPartition}
+            FlatPartition := {List.append {Stretch F {PartitionToTimedList PartitionItem}} @FlatPartition}
          [] drone(note:Note amount:N) then
             %{Browse 'drone'}
-            FlatPartition := {List.append {Drone Note N} @FlatPartition}
+            FlatPartition := {List.append {Drone {ToExtended Note} N} @FlatPartition}
          [] transpose(semitones:N Partition) then
             %{Browse 'transpose'}
-            FlatPartition := {List.append {Transpose N {Map Partition ToExtended}} @FlatPartition}
+            FlatPartition := {List.append {Transpose N {PartitionToTimedList PartitionItem}} @FlatPartition}
          else
             FlatPartition := {ToExtended PartitionItem}|@FlatPartition
          end   
@@ -269,8 +275,8 @@ local
       NoteFrequency = {Frequency Note}
       Pi = 3.14159265359
    in
-      for I in {Float.toInt {Float.round 44100.0 * Note.duration}}-1 .. 0; ~1 do
-         Sample := 0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/44100.0)}|@Sample
+      for I in {Float.toInt {Float.round SamplingSize * Note.duration}}-1 .. 0; ~1 do
+         Sample := 0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/SamplingSize)}|@Sample
       end
       @Sample
    end
@@ -289,7 +295,7 @@ local
    %  
       Sample = {NewCell nil}
    in
-      for I in {Float.toInt {Float.round 44100.0 * Silence.duration}}-1 .. 0; ~1 do
+      for I in {Float.toInt {Float.round SamplingSize * Silence.duration}}-1 .. 0; ~1 do
          Sample := 0.0|@Sample
       end
       @Sample
@@ -308,20 +314,37 @@ local
    % Return: (List(Float))
    %    Sample of the Silence.
    % 
+
+   %%% NOT WORKING %%%
       Sample = {NewCell nil}
       Pi = 3.14159265359
-      I
-      fun {Ai Note} 
-         NoteFrequency = {Frequency Note}
-      in
-         0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/44100.0)}
-      end
+      L = {Int.toFloat {List.length Chord}}
    in
-      for I in {Float.toInt {Float.round 44100.0 * Chord.1.duration}}-1 .. 0; ~1 do
-         Sample := ({List.foldR {Map Chord Ai} fun {$ X Y} X + Y end 0}/{List.length Chord})|@Sample
+      for I in {Float.toInt {Float.round SamplingSize * Chord.1.duration}}-1 .. 0; ~1 do
+         local
+            fun {Ai Note} 
+               NoteFrequency = {Frequency Note}
+            in
+               0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/SamplingSize)}
+            end
+         in
+            Sample := ({List.foldR {Map Chord Ai} fun {$ X Y} X + Y end 0.0}/L)|@Sample
+         end
       end
       @Sample
    end
+
+   fun {ToSample PartitionItem}
+      case {Label PartitionItem}
+      of note then {NoteSample PartitionItem}
+      [] silence then {SilenceSample PartitionItem}
+      [] '|' then 
+         {ChordSample PartitionItem}
+      else
+         raise "The sample of this partition item has no been implemented" end
+      end
+   end
+   
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                                 Filters                                   %
@@ -345,7 +368,7 @@ local
       MusicTuple = {List.toTuple '#' Music}
       Sample = {NewCell nil}
    in
-      for I in 1..{Float.toInt (44100.0 * T)} do
+      for I in 1..{Float.toInt (SamplingSize * T)} do
          Sample := MusicTuple.I|@Sample 
       end
       {List.reverse @Sample}
@@ -387,8 +410,7 @@ local
    fun {Mix P2T Music}
       Partition = {P2T Music.1}
    in
-      {Browse Partition}
-      {Flatten {List.map Partition NoteSample}}
+      {Flatten {List.map Partition ToSample}}
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
