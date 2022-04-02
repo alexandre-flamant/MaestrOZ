@@ -9,6 +9,7 @@ local
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    SamplingSize = 44100.0
+   Smoothing = false
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                           Data Type Conversion                            %
@@ -315,7 +316,6 @@ local
    %    Sample of the Silence.
    % 
 
-   %%% NOT WORKING %%%
       Sample = {NewCell nil}
       Pi = 3.14159265359
       L = {Int.toFloat {List.length Chord}}
@@ -363,6 +363,7 @@ local
       @Sample
    end
 
+
    fun {Loop T Music}
       Lenght = {List.length Music}
       MusicTuple = {List.toTuple '#' Music}
@@ -373,6 +374,7 @@ local
       end
       {List.reverse @Sample}
    end
+
 
    fun {Clip Low High Music}
       ReversedMusic = {List.reverse Music}
@@ -387,19 +389,71 @@ local
       @ClippedMusic
    end
 
+
    fun {Echo Delay Decay Music}
-      skip
-      nil
+      L = {List.lenght Music}
+      Sample = {NewCell nil}
+   in
+      for I in (L + Delay * SamplingSize)..0;~1 do
+         local 
+            Ai = {NewCell 0.0}
+         in
+            if I =< L then Ai := @Ai + {List.nth Music I} end
+            if I >= Delay * SamplingSize then Ai := @Ai + Decay * {List.nth Music (I - Delay * SamplingSize)} end
+            Sample := @Ai|@Sample
+         end
+      end
    end
 
    fun {Fade Start Out Music}
-      skip
-      nil
+      L = {List.length Music}
+      Sample = {NewCell nil}
+   in
+      % Fading the end if the sample
+      for I in L..(L-SamplingSize*Out + 1);~1 do
+         local
+            % Affine Transformation f(x) = A*x + B
+            % Such that f(L) = 0 and f(L-SamplingSize*Out) = 1
+            B = 1.0/(1.0 - ({Int.toFloat L} - {Int.toFloat SamplingSize*Out})/{Int.toFloat L})
+            A = ~B/{Int.toFloat L}
+            Factor = A * {Int.toFloat I} + B
+         in	 
+            Sample := {List.nth X I} * Factor | @Sample
+         end
+      end
+
+      % No fading in the middle
+      for I in (L-SamplingSize*Out)..(SamplingSize*Start + 1);~1 do
+         Sample := {List.nth X I}|@Sample
+      end
+
+      % Fading at the start of the sample
+      for I in SamplingSize*Start..1;~1 do
+         local
+            % Affine Transformation f(x) = A*x + B
+            % Such that f(0) = 0 and f(SamplingSize*Start + 1) = 1
+            B = ~1.0/{Int.toFloat Start}
+            A = ~B
+            Factor = A * {Int.toFloat I} + B
+         in
+            Sample := {List.nth X I} * Factor|@Sample
+         end
+      end
+      @Sample
    end
 
    fun {Cut Start Finish Music}
-      skip
-      nil
+      L = {List.length Music}
+      Sample = {NewCell nil}
+   in
+      for I in (SamplingSize * Finish)..(SamplingSize * Start);~1 do
+         if I > L then 
+            Sample := 0.0|@Sample
+         else 
+            Sample := {List.nth Music I}|@Sample
+         end
+      end
+      @Sample
    end
 
 
