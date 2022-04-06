@@ -166,19 +166,39 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST Mix
 proc {TestSamples P2T Mix}
-   skip
+   Expectation = [0.5 0.4 0.3 0.2 0.1 0.0 ~0.1 ~0.2 ~0.3 ~0.4 ~0.5]
+   Music = [sample(Expectation)]
+in
+   {AssertEquals {Mix P2T Music} Expectation 'TestSamples failed'}
 end
 
 proc {TestPartition P2T Mix}
-   skip
+   % Sound okay from test with actual partition
+   Music = [partition([a b c d])]
+   Sample
+in
+   Sample = {Mix P2T Music}
+   % Test of the signal length
+   {AssertEquals {List.length Sample} 4*44100 'TestPartition failed'}
 end
 
 proc {TestWave P2T Mix}
-   skip
+   Wav = 'wave/animals/cat.wav'
+   Music = [wave(Wav)]
+   Expectation = {Project.readFile Wav}
+in
+   {AssertEquals {Mix P2T Music} Expectation 'TestWave failed'}
 end
 
 proc {TestMerge P2T Mix}
-   skip
+   Music = [merge([0.5#[sample([1.0 0.8 1.0 0.4 0.2 0.0])] 
+                   0.2#[sample([~1.0 ~1.0 ~1.0 ~1.0])]
+                   0.06#[sample([1.0 1.0]) sample([1.0 1.0 1.0 1.0])]])]
+   Expectation = [0.36 0.26 0.36 0.06 0.16 0.06]
+   M
+in
+   %for X in {Mix P2T Music} do {Show {Float.is X}} end 
+   {AssertEquals {Mix P2T Music} Expectation 'TestMerge failed'} %Seems to work but doesn't pass the tests ... -> Looks like floating point issue
 end
 
 proc {TestReverse P2T Mix}

@@ -510,21 +510,21 @@ local
    fun {ScaledVSum X Fx Y Fy}
       Lx = {List.length X}
       Ly = {List.length Y}
-      fun {Aux X Y}
+      fun {Aux X Fx Y Fy}
          case X
          of nil then nil
          [] Hx|Tx then
-       case Y
-       of nil then Fx * Hx|{Aux Tx Y}
-       [] Hy|Ty then (Fx * Hx+ Fy * Hy)|{Aux Tx Ty}
-       end
+            case Y
+            of nil then Fx * Hx|{Aux Tx Fx Y Fy}
+            [] Hy|Ty then (Fx * Hx+ Fy * Hy)|{Aux Tx Fx Ty Fy}
+            end
          end
       end	    
    in
       if Ly > Lx then
-         {Aux Y X}
+         {Aux Y Fy X Fx}
       else
-         {Aux X Y}
+         {Aux X Fx Y Fy}
       end
    end
 
@@ -539,7 +539,7 @@ local
       for Part in Music do
          case {Label Part}
          of sample then
-            Sample := {List.append @Sample Part}
+            Sample := {List.append @Sample Part.1}
          [] partition then
             local 
                Partition = {P2T Part.1}
@@ -550,25 +550,25 @@ local
             local
                FileName = Part.1
             in
-               Sample := {List.append @Sample {Project.load FileName}}
+               Sample := {List.append @Sample {Project.readFile FileName}}
             end
          [] merge then
             local 
                R = {NewCell nil}
             in
-               for Item in Part do
+               for Item in Part.1 do
                   case Item
                   of F#M then
                      R := {ScaledVSum @R 1.0 {Mix P2T M} F}
                   else  
                      {Show Item}
                      raise 'Wrong merge format' end
-                  end   
+                  end 
                end
                Sample := {List.append @Sample @R}
             end
          else  
-            {Browse Part}
+            {Show Part}
             raise 'Not Implemented' end
          end
       end
@@ -579,7 +579,7 @@ local
    %                            Boiler plate code                              %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   Music = {Project.load 'sample/joyfast.dj.oz'}
+   %Music = {Project.load 'sample/joyfast.dj.oz'}
    Start
 
    % Uncomment next line to insert your tests.
@@ -597,7 +597,7 @@ in
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
-   %{Browse {Project.run Mix PartitionToTimedList Music 'out.wav'}}
+   %{Browse {Project.run Mix PartitionToTimedList Music 'sample/cat.wav'}}
 
    % Shows the total time to run your code.
    {Browse {IntToFloat {Time}-Start} / 1000.0}
