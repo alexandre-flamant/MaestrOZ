@@ -134,18 +134,20 @@ proc {TestP2TChaining P2T}
                    note(name:c octave:5 sharp:true duration:3.0 instrument:none)]
                   [note(name:f octave:4 sharp:true duration:3.0 instrument:none)
                    note(name:a octave:4 sharp:false duration:3.0 instrument:none)
-                   note(name:c octave:5 sharp:true duration:3.0 instrument:none)]42]
+                   note(name:c octave:5 sharp:true duration:3.0 instrument:none)]]
 in
    {AssertEquals {P2T Partition} Expectation 'TestP2TChaining failed'}
 end
 
 proc {TestEmptyChords P2T}
-   Partition = [a b nil] % Empty list is nil
-   Expectation = [note(duration:1 instrument:none name:a octave:4 sharp:false) 
-                  note(duration:1 instrument:none name:b octave:4 sharp:false) 
-                  nil] % So it should stay nil I guess
+   % Empty list is nil
+   Partition = [a b nil] 
+   % So it should stay nil I guess
+   Expectation = [note(duration:1.0 instrument:none name:a octave:4 sharp:false)
+                  note(duration:1.0 instrument:none name:b octave:4 sharp:false)
+                  nil]
 in
-   {Show {P2T Partition}}
+   {AssertEquals {P2T Partition} Expectation 'TestEmptyChord failed'}
 end
    
 proc {TestP2T P2T}

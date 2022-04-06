@@ -1,7 +1,7 @@
 % Flamant Alexandre 5308 1500
 local
    % See project statement for API details.
-   [Project] = {Link ['Project2022.ozf']}
+   [Project] = {Link ['src/Project2022.ozf']}
    Time = {Link ['x-oz://boot/Time']}.1.getReferenceTime
    
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -579,11 +579,11 @@ local
    %                            Boiler plate code                              %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   Music = {Project.load 'joyfast.dj.oz'}
+   Music = {Project.load 'sample/joyfast.dj.oz'}
    Start
 
    % Uncomment next line to insert your tests.
-   \insert 'tests.oz'
+   \insert 'test/tests.oz'
    % !!! Remove this before submitting.
 in
    Start = {Time}
@@ -593,7 +593,7 @@ in
 
    % Add variables to this list to avoid "local variable used only once"
    % warnings.
-   {ForAll [Length Fade Smoothing Reverse Repeat Loop Clip Echo Cut FilterToSample Length NoteToExtended Music SilenceSample ChordSample] Wait}
+   {ForAll [Length Fade Smoothing Reverse Repeat Loop Clip Echo Cut FilterToSample Length NoteToExtended SilenceSample ChordSample] Wait}
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
