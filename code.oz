@@ -20,17 +20,24 @@ local
       case Note
       of Name#Octave then
          note(name:Name octave:Octave sharp:true duration:1.0 instrument:none)
+      [] silence(duration:D) then
+         Note
+      [] note(name:N octave:O sharp:S duration:D instrument:I) then
+         Note
       [] Atom then
          case {AtomToString Atom}
          of [_] then
-      note(name:Atom octave:4 sharp:false duration:1.0 instrument:none)
+            note(name:Atom octave:4 sharp:false duration:1.0 instrument:none)
          [] [N O] then
-      note(name:{StringToAtom [N]}
-            octave:{StringToInt [O]}
-            sharp:false
-            duration:1.0
-            instrument: none)
+            note(name:{StringToAtom [N]}
+                 octave:{StringToInt [O]}
+                 sharp:false
+                 duration:1.0
+               instrument: none)
          end
+      else
+         {Show Note}
+         raise 'Incorrect note' end
       end
    end
 
@@ -39,9 +46,9 @@ local
    end
    
    fun {ToExtended Item}
-      case Item
-      of H|T then {ChordToExtended Item}
-      else  {NoteToExtended Item}
+      if {List.is Item} then {ChordToExtended Item}
+      elseif Item == silence then silence(duration:1.0)
+      else {NoteToExtended Item}
       end   
    end   
 
@@ -65,6 +72,7 @@ local
       InitT = {List.foldR Partition fun {$ PartitionItem T}
                                        case {Label PartitionItem}
                                        of note then T + PartitionItem.duration
+                                       [] silence then T + PartitionItem.duration
                                        [] '|' then T + PartitionItem.1.duration
                                        end
                                     end
@@ -192,24 +200,24 @@ local
    %                            Partition Creation                             %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   fun {PartitionToTimedList Partition}    
-      ReversedPartition = {List.reverse Partition.1}
+   fun {PartitionToTimedList Partition}
+      ReversedPartition = {List.reverse Partition}
       FlatPartition = {NewCell nil}
    in
       for PartitionItem in ReversedPartition do
          case PartitionItem
-         of duration(seconds:T Partition) then
+         of duration(seconds:T P) then
             %{Browse 'duration'}
-            FlatPartition := {List.append {Duration T {PartitionToTimedList PartitionItem}} @FlatPartition}
-         [] stretch(factor:F Partition) then
+            FlatPartition := {List.append {Duration T {PartitionToTimedList P}} @FlatPartition}
+         [] stretch(factor:F P) then
             %{Browse 'stretch'}
-            FlatPartition := {List.append {Stretch F {PartitionToTimedList PartitionItem}} @FlatPartition}
+            FlatPartition := {List.append {Stretch F {PartitionToTimedList P}} @FlatPartition}
          [] drone(note:Note amount:N) then
             %{Browse 'drone'}
             FlatPartition := {List.append {Drone {ToExtended Note} N} @FlatPartition}
-         [] transpose(semitones:N Partition) then
+         [] transpose(semitones:N P) then
             %{Browse 'transpose'}
-            FlatPartition := {List.append {Transpose N {PartitionToTimedList PartitionItem}} @FlatPartition}
+            FlatPartition := {List.append {Transpose N {PartitionToTimedList P}} @FlatPartition}
          else
             FlatPartition := {ToExtended PartitionItem}|@FlatPartition
          end   
@@ -365,7 +373,7 @@ local
 
 
    fun {Loop T Music}
-      Lenght = {List.length Music}
+      Length = {List.length Music} % Might be useless
       MusicTuple = {List.toTuple '#' Music}
       Sample = {NewCell nil}
    in
@@ -394,7 +402,7 @@ local
       L = {List.lenght Music}
       Sample = {NewCell nil}
    in
-      for I in (L + Delay * SamplingSize)..0;~1 do
+      for I in (L + {Float.toInt Delay * SamplingSize})..0;~1 do
          local 
             Ai = {NewCell 0.0}
          in
@@ -403,6 +411,7 @@ local
             Sample := @Ai|@Sample
          end
       end
+      @Sample
    end
 
    fun {Fade Start Out Music}
@@ -418,13 +427,13 @@ local
             A = ~B/{Int.toFloat L}
             Factor = A * {Int.toFloat I} + B
          in	 
-            Sample := {List.nth X I} * Factor | @Sample
+            Sample := {List.nth Music I} * Factor | @Sample
          end
       end
 
       % No fading in the middle
       for I in (L-SamplingSize*Out)..(SamplingSize*Start + 1);~1 do
-         Sample := {List.nth X I}|@Sample
+         Sample := {List.nth Music I}|@Sample
       end
 
       % Fading at the start of the sample
@@ -436,7 +445,7 @@ local
             A = ~B
             Factor = A * {Int.toFloat I} + B
          in
-            Sample := {List.nth X I} * Factor|@Sample
+            Sample := {List.nth Music I} * Factor|@Sample
          end
       end
       @Sample
@@ -456,39 +465,107 @@ local
       @Sample
    end
 
+   fun {FilterToSample Filter}
+      nil
+   end
+
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                            Music handling tools                           %
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+   fun {ScaledVSum X Fx Y Fy}
+      Lx = {List.length X}
+      Ly = {List.length Y}
+      fun {Aux X Y}
+         case X
+         of nil then nil
+         [] Hx|Tx then
+       case Y
+       of nil then Fx * Hx|{Aux Tx Y}
+       [] Hy|Ty then (Fx * Hx+ Fy * Hy)|{Aux Tx Ty}
+       end
+         end
+      end	    
+   in
+      if Ly > Lx then
+         {Aux Y X}
+      else
+         {Aux X Y}
+      end
+   end
+
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                                  Mixing                                   %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    fun {Mix P2T Music}
-      Partition = {P2T Music.1}
+      Sample = {NewCell nil}
    in
-      {Flatten {List.map Partition ToSample}}
+      for Part in Music do
+         case {Label Part}
+         of sample then
+            Sample := {List.append @Sample Part}
+         [] partition then
+            local 
+               Partition = {P2T Part.1}
+            in
+               Sample := {List.append @Sample {List.flatten {List.map Partition ToSample}}}
+            end
+         [] wave then
+            local
+               FileName = Part.1
+            in
+               Sample := {List.append @Sample {Project.load FileName}}
+            end
+         [] merge then
+            local 
+               R = {NewCell nil}
+            in
+               for Item in Part do
+                  case Item
+                  of F#M then
+                     R := {ScaledVSum @R 1.0 {Mix P2T M} F}
+                  else  
+                     {Show Item}
+                     raise 'Wrong merge format' end
+                  end   
+               end
+               Sample := {List.append @Sample @R}
+            end
+         else  
+            {Browse Part}
+            raise 'Not Implemented' end
+         end
+      end
+      @Sample
    end
 
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %                            Boiler plate code                              %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    Music = {Project.load 'joyfast.dj.oz'}
    Start
 
    % Uncomment next line to insert your tests.
-   % \insert 'tests.oz'
+   \insert 'tests.oz'
    % !!! Remove this before submitting.
 in
    Start = {Time}
 
    % Uncomment next line to run your tests.
-   % {Test Mix PartitionToTimedList}
+   {Test Mix PartitionToTimedList}
 
    % Add variables to this list to avoid "local variable used only once"
    % warnings.
-   {ForAll [NoteToExtended Music SilenceSample ChordSample] Wait}
+   {ForAll [Length Fade Smoothing Reverse Repeat Loop Clip Echo Cut FilterToSample Length NoteToExtended Music SilenceSample ChordSample] Wait}
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
-   {Browse {Project.run Mix PartitionToTimedList Music 'out.wav'}}
-   
+   %{Browse {Project.run Mix PartitionToTimedList Music 'out.wav'}}
+
    % Shows the total time to run your code.
    {Browse {IntToFloat {Time}-Start} / 1000.0}
+   {Browse ok}
 end

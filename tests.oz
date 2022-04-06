@@ -38,41 +38,114 @@ end
 % TEST PartitionToTimedNotes
 
 proc {TestNotes P2T}
-   skip
+   Partition = [a5 b#4 silence c2]
+   Expectation = [note(name:a octave:5 sharp:false duration:1.0 instrument:none)
+             note(name:b octave:4 sharp:true duration:1.0 instrument:none)
+             silence(duration:1.0)
+             note(name:c octave:2 sharp:false duration:1.0 instrument:none)]
+in
+   {AssertEquals {P2T Partition} Expectation 'TestNotes failed'}
 end
 
 proc {TestChords P2T}
-   skip
+   Partition = [[a5 b#4 c2]]
+   Expectation = [[note(name:a octave:5 sharp:false duration:1.0 instrument:none)
+              note(name:b octave:4 sharp:true duration:1.0 instrument:none)
+              note(name:c octave:2 sharp:false duration:1.0 instrument:none)]]
+in
+   {AssertEquals {P2T Partition} Expectation 'TestChords failed'}
 end
 
 proc {TestIdentity P2T}
-   % test that extended notes and chord go from input to output unchanged
-   skip
+   Partition = [note(name:a octave:5 sharp:false duration:1.0 instrument:none)
+                [note(name:a octave:5 sharp:false duration:1.0 instrument:none)
+                note(name:b octave:4 sharp:true duration:1.0 instrument:none)
+                note(name:c octave:2 sharp:false duration:1.0 instrument:none)]
+                note(name:b octave:4 sharp:true duration:1.0 instrument:none)
+                silence(duration:1.0)
+                note(name:c octave:2 sharp:false duration:1.0 instrument:none)]
+in
+   {AssertEquals {P2T Partition} Partition 'TestIdentity failed'}
 end
 
 proc {TestDuration P2T}
-   skip
+   Partition = [duration(seconds:20.0 [a5 b#4 duration(seconds:2.0 [silence])]) c2 duration(seconds:4.0 [[a b]])]
+   Expectation = [note(name:a octave:5 sharp:false duration:5.0 instrument:none)
+                  note(name:b octave:4 sharp:true duration:5.0 instrument:none)
+                  silence(duration:10.0)
+                  note(name:c octave:2 sharp:false duration:1.0 instrument:none)
+                  [note(name:a octave:4 sharp:false duration:4.0 instrument:none)
+                   note(name:b octave:4 sharp:false duration:4.0 instrument:none)]]
+in
+   {AssertEquals {P2T Partition} Expectation 'TestIdentity failed'}
 end
 
 proc {TestStretch P2T}
-   skip
+   Partition = [stretch(factor:2.0 [a5 b#4 stretch(factor:2.6 [silence])]) c2]
+   Expectation = [note(name:a octave:5 sharp:false duration:2.0 instrument:none)
+                  note(name:b octave:4 sharp:true duration:2.0 instrument:none)
+                  silence(duration:5.2)
+                  note(name:c octave:2 sharp:false duration:1.0 instrument:none)]
+in
+   {AssertEquals {P2T Partition} Expectation 'TestStretch failed'}
 end
 
 proc {TestDrone P2T}
-   skip
+   Partition = [drone(note:e#5 amount:3) d drone(note:[e#3 g] amount:2) f8 drone(note:a amount:1) drone(note:c amount:0)]
+   Expectation = [note(name:e octave:5 sharp:true duration:1.0 instrument:none)
+                  note(name:e octave:5 sharp:true duration:1.0 instrument:none)
+                  note(name:e octave:5 sharp:true duration:1.0 instrument:none)
+                  note(name:d octave:4 sharp:false duration:1.0 instrument:none)
+                  [note(name:e octave:3 sharp:true duration:1.0 instrument:none)
+                   note(name:g octave:4 sharp:false duration:1.0 instrument:none)]
+                  [note(name:e octave:3 sharp:true duration:1.0 instrument:none)
+                   note(name:g octave:4 sharp:false duration:1.0 instrument:none)]
+                  note(name:f octave:8 sharp:false duration:1.0 instrument:none)
+                  note(name:a octave:4 sharp:false duration:1.0 instrument:none)]
+in
+   {AssertEquals {P2T Partition} Expectation 'TestDrone failed'}
 end
 
 proc {TestTranspose P2T}
-   skip
+   Partition = [transpose(semitones:1 [a#3 b4]) transpose(semitones:12 [[e g5] silence]) f]
+   Expectation = [note(name:b octave:3 sharp:false duration:1.0 instrument:none)
+                   note(name:c octave:5 sharp:false duration:1.0 instrument:none)
+                   [note(name:e octave:5 sharp:false duration:1.0 instrument:none)
+                    note(name:g octave:6 sharp:false duration:1.0 instrument:none)]
+                   silence(duration:1.0)
+                   note(name:f octave:4 sharp:false duration:1.0 instrument:none)]
+in
+   {AssertEquals {P2T Partition} Expectation 'TestTranspose failed'}
 end
 
 proc {TestP2TChaining P2T}
-   % test a partition with multiple transformations
-   skip
+   Partition = [stretch(factor:1.5 
+                        [duration(seconds:6.0
+                                  [transpose(semitones:2 
+                                             [drone(amount:3 note:[e g b])]
+                                             )]
+                                 )]
+                        )]
+   Expectation = [[note(name:f octave:4 sharp:true duration:3.0 instrument:none)
+                   note(name:a octave:4 sharp:false duration:3.0 instrument:none)
+                   note(name:c octave:5 sharp:true duration:3.0 instrument:none)]
+                  [note(name:f octave:4 sharp:true duration:3.0 instrument:none)
+                   note(name:a octave:4 sharp:false duration:3.0 instrument:none)
+                   note(name:c octave:5 sharp:true duration:3.0 instrument:none)]
+                  [note(name:f octave:4 sharp:true duration:3.0 instrument:none)
+                   note(name:a octave:4 sharp:false duration:3.0 instrument:none)
+                   note(name:c octave:5 sharp:true duration:3.0 instrument:none)]]
+in
+   {AssertEquals {P2T Partition} Expectation 'TestP2TChaining failed'}
 end
 
 proc {TestEmptyChords P2T}
-   skip
+   Partition = [a b nil] % Empty list is nil
+   Expectation = [note(duration:1 instrument:none name:a octave:4 sharp:false) 
+                  note(duration:1 instrument:none name:b octave:4 sharp:false) 
+                  nil] % So it should stay nil I guess
+in
+   {Show {P2T Partition}}
 end
    
 proc {TestP2T P2T}
@@ -90,7 +163,6 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST Mix
-
 proc {TestSamples P2T Mix}
    skip
 end
