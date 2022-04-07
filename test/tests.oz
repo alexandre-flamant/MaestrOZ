@@ -44,7 +44,7 @@ proc {TestNotes P2T}
              silence(duration:1.0)
              note(name:c octave:2 sharp:false duration:1.0 instrument:none)]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestNotes failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestNotes failed'}
 end
 
 proc {TestChords P2T}
@@ -53,7 +53,7 @@ proc {TestChords P2T}
               note(name:b octave:4 sharp:true duration:1.0 instrument:none)
               note(name:c octave:2 sharp:false duration:1.0 instrument:none)]]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestChords failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestChords failed'}
 end
 
 proc {TestIdentity P2T}
@@ -65,7 +65,7 @@ proc {TestIdentity P2T}
                 silence(duration:1.0)
                 note(name:c octave:2 sharp:false duration:1.0 instrument:none)]
 in
-   {AssertEquals {P2T Partition} Partition 'TestIdentity failed'}
+   {AssertEquals {P2T Partition} Partition '   TestIdentity failed'}
 end
 
 proc {TestDuration P2T}
@@ -77,7 +77,7 @@ proc {TestDuration P2T}
                   [note(name:a octave:4 sharp:false duration:4.0 instrument:none)
                    note(name:b octave:4 sharp:false duration:4.0 instrument:none)]]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestIdentity failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestIdentity failed'}
 end
 
 proc {TestStretch P2T}
@@ -87,7 +87,7 @@ proc {TestStretch P2T}
                   silence(duration:5.2)
                   note(name:c octave:2 sharp:false duration:1.0 instrument:none)]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestStretch failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestStretch failed'}
 end
 
 proc {TestDrone P2T}
@@ -103,7 +103,7 @@ proc {TestDrone P2T}
                   note(name:f octave:8 sharp:false duration:1.0 instrument:none)
                   note(name:a octave:4 sharp:false duration:1.0 instrument:none)]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestDrone failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestDrone failed'}
 end
 
 proc {TestTranspose P2T}
@@ -115,7 +115,7 @@ proc {TestTranspose P2T}
                    silence(duration:1.0)
                    note(name:f octave:4 sharp:false duration:1.0 instrument:none)]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestTranspose failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestTranspose failed'}
 end
 
 proc {TestP2TChaining P2T}
@@ -136,7 +136,7 @@ proc {TestP2TChaining P2T}
                    note(name:a octave:4 sharp:false duration:3.0 instrument:none)
                    note(name:c octave:5 sharp:true duration:3.0 instrument:none)]]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestP2TChaining failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestP2TChaining failed'}
 end
 
 proc {TestEmptyChords P2T}
@@ -147,7 +147,7 @@ proc {TestEmptyChords P2T}
                   note(duration:1.0 instrument:none name:b octave:4 sharp:false)
                   nil]
 in
-   {AssertEquals {P2T Partition} Expectation 'TestEmptyChord failed'}
+   {AssertEquals {P2T Partition} Expectation '   TestEmptyChord failed'}
 end
    
 proc {TestP2T P2T}
@@ -169,7 +169,7 @@ proc {TestSamples P2T Mix}
    Expectation = [0.5 0.4 0.3 0.2 0.1 0.0 ~0.1 ~0.2 ~0.3 ~0.4 ~0.5]
    Music = [sample(Expectation)]
 in
-   {AssertEquals {Mix P2T Music} Expectation 'TestSamples failed'}
+   {AssertEquals {Mix P2T Music} Expectation '   TestSamples failed'}
 end
 
 proc {TestPartition P2T Mix}
@@ -179,7 +179,7 @@ proc {TestPartition P2T Mix}
 in
    Sample = {Mix P2T Music}
    % Test of the signal length
-   {AssertEquals {List.length Sample} 4*44100 'TestPartition failed'}
+   {AssertEquals {List.length Sample} 4*44100 '   TestPartition failed'}
 end
 
 proc {TestWave P2T Mix}
@@ -187,7 +187,7 @@ proc {TestWave P2T Mix}
    Music = [wave(Wav)]
    Expectation = {Project.readFile Wav}
 in
-   {AssertEquals {Mix P2T Music} Expectation 'TestWave failed'}
+   {AssertEquals {Mix P2T Music} Expectation '   TestWave failed'}
 end
 
 proc {TestMerge P2T Mix}
@@ -195,38 +195,94 @@ proc {TestMerge P2T Mix}
                    0.2#[sample([~1.0 ~1.0 ~1.0 ~1.0])]
                    0.06#[sample([1.0 1.0]) sample([1.0 1.0 1.0 1.0])]])]
    Expectation = [0.36 0.26 0.36 0.06 0.16 0.06]
-   M
 in
    %for X in {Mix P2T Music} do {Show {Float.is X}} end 
-   {AssertEquals {Mix P2T Music} Expectation 'TestMerge failed'} %Seems to work but doesn't pass the tests ... -> Looks like floating point issue
+   {AssertEquals {Mix P2T Music} Expectation '   TestMerge failed'} %Seems to work but doesn't pass the tests ... -> Looks like floating point issue
 end
 
 proc {TestReverse P2T Mix}
-   skip
+   Music = [reverse([sample([0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0])])]
+   Expectation = [1.0 0.9 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.0]
+in
+   {AssertEquals {Mix P2T Music} Expectation '   TestReverse failed'}
 end
 
 proc {TestRepeat P2T Mix}
-   skip
+   Music = [repeat(amount: 3 [sample([0.3 0.1 0.4])])]
+   Expectation = [0.3 0.1 0.4 0.3 0.1 0.4 0.3 0.1 0.4]
+in
+   {AssertEquals {Mix P2T Music} Expectation '   TestRepeat failed'}
 end
 
 proc {TestLoop P2T Mix}
-   skip
+   Music = [loop(duration:2.0 [sample([0.3 0.1 0.4])])]
+in
+   {AssertEquals {List.length {Mix P2T Music}} 2*44100 '   TestLoop failed'}
 end
 
 proc {TestClip P2T Mix}
-   skip
+   Music = [clip(low:~0.05 high:0.32 [sample([0.5 0.4 0.3 0.2 0.1 0.0 ~0.1 ~0.2 ~0.3 ~0.4 ~0.5])])]
+   Expectation = [0.32 0.32 0.3 0.2 0.1 0.0 ~0.05 ~0.05 ~0.05 ~0.05 ~0.05]
+in
+   {AssertEquals {Mix P2T Music} Expectation '   TestClip failed'}
 end
 
 proc {TestEcho P2T Mix}
-   skip
+   Wav = 'wave/animals/cow.wav'
+   Music = [echo(delay:3.0 decay:0.05 [wave(Wav)])] 
+in
+   %{Browse {Project.run Mix P2T Music 'sample/echo.wav'}}
+   {AssertEquals true true '   TestEcho failed'} % Test ok from hearing
 end
 
 proc {TestFade P2T Mix}
-   skip
+   Music1 = [fade(start: 2.0/44100.0 out:8.0/44100.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                                              1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                                              1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
+   Expectation1 = [0.0 0.5 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 0.875 0.75 0.625 0.5 0.375 0.25 0.125 0.0]
+
+   Music2 = [fade(start: 0.0 out:8.0/44100.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                                      1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                                      1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
+   Expectation2 = [1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 0.875 0.75 0.625 0.5 0.375 0.25 0.125 0.0]
+
+   Music3 = [fade(start: 2.0/44100.0 out:0.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                                      1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                                      1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
+   Expectation3 = [0.0 0.5 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0]
+                                   
+   Music4 = [fade(start: 0.0 out:0.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                              1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                                              1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
+   Expectation4 = [1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+                   1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0]
+in
+   {AssertEquals {Mix P2T Music1} Expectation1 '   TestFade failed'}
+   {AssertEquals {Mix P2T Music2} Expectation2 '   TestFade failed'}
+   {AssertEquals {Mix P2T Music3} Expectation3 '   TestFade failed'}
+   {AssertEquals {Mix P2T Music4} Expectation4 '   TestFade failed'}
 end
 
 proc {TestCut P2T Mix}
-   skip
+   Music1 = [cut(start:5.0/44100.0 finish:20.0/44100.0 [sample([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
+   Expectation1 = [6.0 7.0 8.0 9.0 10.0 11.0 12.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
+
+   Music2 = [cut(start:5.0/44100.0 finish:9.0/44100.0 [sample([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
+   Expectation2 = [6.0 7.0 8.0]
+
+   Music3 = [cut(start:0.0/44100.0 finish:13.0/44100.0 [sample([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
+   Expectation3 = [1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0]
+in
+   {AssertEquals {Mix P2T Music1} Expectation1 '   TestCut failed with 5 20'}
+   {AssertEquals {Mix P2T Music2} Expectation2 '   TestCut failed with 5 9'}
+   {AssertEquals {Mix P2T Music3} Expectation3 '   TestCut failed with 0 9'}
 end
 
 proc {TestMix P2T Mix}

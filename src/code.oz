@@ -407,12 +407,12 @@ local
 
 
    fun {Loop T Music}
-      Length = {List.length Music} % Might be useless
+      Length = {List.length Music}
       MusicTuple = {List.toTuple '#' Music}
       Sample = {NewCell nil}
    in
       for I in 1..{Float.toInt (SamplingSize * T)} do
-         Sample := MusicTuple.I|@Sample 
+         Sample := MusicTuple.((I mod Length +1))|@Sample 
       end
       {List.reverse @Sample}
    end
@@ -433,75 +433,70 @@ local
 
 
    fun {Echo Delay Decay Music}
-      L = {List.lenght Music}
-      Sample = {NewCell nil}
+      L = {List.length Music}
+      DelayedMusic = {NewCell Music}
    in
-      for I in (L + {Float.toInt Delay * SamplingSize})..0;~1 do
-         local 
-            Ai = {NewCell 0.0}
-         in
-            if I =< L then Ai := @Ai + {List.nth Music I} end
-            if I >= Delay * SamplingSize then Ai := @Ai + Decay * {List.nth Music (I - Delay * SamplingSize)} end
-            Sample := @Ai|@Sample
-         end
-      end
-      @Sample
+      for I in 1..{Float.toInt Delay * SamplingSize} do DelayedMusic := 0.0|@DelayedMusic end
+      {ScaledVSum Music 1.0 @DelayedMusic Decay}
    end
 
    fun {Fade Start Out Music}
       L = {List.length Music}
-      Sample = {NewCell nil}
+      StartMusic MiddleSample OutMusic
+      {List.takeDrop {List.takeDrop Music {Float.toInt Start * SamplingSize} StartMusic} 
+                     (L-{Float.toInt (Start + Out) * SamplingSize}) 
+                     MiddleSample
+                     OutMusic}
+      I = {NewCell 0.0}
+      StartFactor = {List.make {List.length StartMusic}}
+      OutFactor = {List.make {List.length OutMusic}}
+      StartSample OutSample
    in
       % Fading the end if the sample
-      for I in L..(L-SamplingSize*Out + 1);~1 do
-         local
-            % Affine Transformation f(x) = A*x + B
-            % Such that f(L) = 0 and f(L-SamplingSize*Out) = 1
-            B = 1.0/(1.0 - ({Int.toFloat L} - {Int.toFloat SamplingSize*Out})/{Int.toFloat L})
-            A = ~B/{Int.toFloat L}
-            Factor = A * {Int.toFloat I} + B
-         in	 
-            Sample := {List.nth Music I} * Factor | @Sample
+      I := 0.0
+      local
+         % Affine Transformation f(x) = A*x + B
+         % Such that f(L) = 0 and f(L-SamplingSize*Out) = 1
+         B = 0.0
+         A = 1.0/(SamplingSize*Start)
+      in
+         for Ai in StartFactor do	 
+            Ai = A * @I + B
+            I := @I + 1.0
          end
       end
-
-      % No fading in the middle
-      for I in (L-SamplingSize*Out)..(SamplingSize*Start + 1);~1 do
-         Sample := {List.nth Music I}|@Sample
-      end
+      StartSample = {VMul StartMusic StartFactor}
 
       % Fading at the start of the sample
-      for I in SamplingSize*Start..1;~1 do
-         local
-            % Affine Transformation f(x) = A*x + B
-            % Such that f(0) = 0 and f(SamplingSize*Start + 1) = 1
-            B = ~1.0/{Int.toFloat Start}
-            A = ~B
-            Factor = A * {Int.toFloat I} + B
-         in
-            Sample := {List.nth Music I} * Factor|@Sample
+      I := 1.0
+      local
+         % Affine Transformation f(x) = A*x + B
+         % Such that f(0) = 0 and f(SamplingSize*Start + 1) = 1
+         B = 1.0
+         A = ~1.0/(SamplingSize*Out)
+      in
+         for Ai in OutFactor do	 
+            Ai = A * @I + B
+            I := @I + 1.0
          end
       end
-      @Sample
+      OutSample = {VMul OutMusic OutFactor}
+
+      {List.flatten [StartSample MiddleSample OutSample]}
    end
 
    fun {Cut Start Finish Music}
       L = {List.length Music}
-      Sample = {NewCell nil}
+      Sample
+      SilenceSample
    in
-      for I in (SamplingSize * Finish)..(SamplingSize * Start);~1 do
-         if I > L then 
-            Sample := 0.0|@Sample
-         else 
-            Sample := {List.nth Music I}|@Sample
-         end
-      end
-      @Sample
-   end
-
-   fun {FilterToSample Filter}
-      nil
-   end
+      {List.takeDrop {List.takeDrop Music ({Float.toInt Start * SamplingSize}) _} 
+                     ({Float.toInt (Finish - Start) * SamplingSize - 1.0}) 
+                     Sample _}
+      SilenceSample = {List.make {Max 0 ({Float.toInt (Finish) * SamplingSize} - L - 1)}}
+      for Ai in SilenceSample do Ai = 0.0 end
+      {List.append Sample SilenceSample}
+   end 
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                            Music handling tools                           %
@@ -526,6 +521,18 @@ local
       else
          {Aux X Fx Y Fy}
       end
+   end
+
+   fun {VMul X Y}
+      fun{Aux X Y}
+         case X
+         of nil then nil
+         else X.1 * Y.1 |{Aux X.2 Y.2}
+         end
+      end
+   in
+      if {List.length X} \= {List.length Y} then raise 'Lists needs to be the same length' end end 
+      {Aux X Y}
    end
 
 
@@ -600,10 +607,11 @@ local
                Sample := {List.append @Sample {Fade S O Msample }}
             end
          [] cut(start:S finish:F M) then
+
             local
                Msample = {Mix P2T M}
             in
-               Sample := {List.append @Sample {Fade S F Msample}}
+               Sample := {List.append @Sample {Cut S F Msample}}
             end
          else  
             {Show Part}
@@ -631,7 +639,7 @@ in
 
    % Add variables to this list to avoid "local variable used only once"
    % warnings.
-   {ForAll [Length Fade Smoothing Reverse Repeat Loop Clip Echo Cut FilterToSample Length NoteToExtended SilenceSample ChordSample] Wait}
+   {ForAll [Length Fade Smoothing Reverse Repeat Loop Clip Echo Cut Length NoteToExtended SilenceSample ChordSample] Wait}
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
