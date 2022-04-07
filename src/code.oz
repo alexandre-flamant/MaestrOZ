@@ -537,26 +537,22 @@ local
       Sample = {NewCell nil}
    in
       for Part in Music do
-         case {Label Part}
-         of sample then
-            Sample := {List.append @Sample Part.1}
-         [] partition then
+         case Part
+         of sample(S) then
+            Sample := {List.append @Sample S}
+         [] partition(P) then
             local 
-               Partition = {P2T Part.1}
+               Partition = {P2T P}
             in
                Sample := {List.append @Sample {List.flatten {List.map Partition ToSample}}}
             end
-         [] wave then
-            local
-               FileName = Part.1
-            in
-               Sample := {List.append @Sample {Project.readFile FileName}}
-            end
-         [] merge then
+         [] wave(FileName) then
+            Sample := {List.append @Sample {Project.readFile FileName}}
+         [] merge(L) then
             local 
                R = {NewCell nil}
             in
-               for Item in Part.1 do
+               for Item in L do
                   case Item
                   of F#M then
                      R := {ScaledVSum @R 1.0 {Mix P2T M} F}
@@ -566,6 +562,48 @@ local
                   end 
                end
                Sample := {List.append @Sample @R}
+            end
+         [] reverse(M) then
+            local 
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Reverse Msample}}
+            end
+         [] repeat(amount:N M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Repeat N Msample}}
+            end
+         [] loop(duration:T M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Loop T Msample}}
+            end
+         [] clip(low:L high:H M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Clip L H Msample}}
+            end
+         [] echo(delay:T decay:F M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Echo T F Msample}}
+            end
+         [] fade(start:S out:O M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Fade S O Msample }}
+            end
+         [] cut(start:S finish:F M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Fade S F Msample}}
             end
          else  
             {Show Part}
