@@ -285,6 +285,18 @@ in
    {AssertEquals {Mix P2T Music3} Expectation3 '   TestCut failed with 0 9'}
 end
 
+proc {TestSiren P2T Mix}
+   Music = [siren(minf:0.5 maxf:2.0 spike:5.0 [partition([duration(seconds:10.0 [[g1 g2 g3]])])])]
+in
+   _ = {Project.run Mix P2T Music 'sample/siren.wav'}
+end 
+
+proc {TestVibrato P2T Mix}
+   Music = [vibrato(frequency:5.0 decay:0.6 [partition([duration(seconds:10.0 [[g e d]])])])]
+in
+   _ = {Project.run Mix P2T Music 'sample/vibrato.wav'}
+end 
+
 proc {TestMix P2T Mix}
    {TestSamples P2T Mix}
    {TestPartition P2T Mix}
@@ -297,6 +309,8 @@ proc {TestMix P2T Mix}
    {TestEcho P2T Mix}
    {TestFade P2T Mix}
    {TestCut P2T Mix}
+   {TestSiren P2T Mix}
+   {TestVibrato P2T Mix}
    {AssertEquals {Mix P2T nil} nil 'nil music'}
 end
 

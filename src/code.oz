@@ -7,9 +7,14 @@ local
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                             Control variables                             %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+   
+   Pi = 3.14159265359
    SamplingSize = 44100.0
-   Smoothing = false
+   Smoothing = false % Implement smoothing ! 
+   % Might implement Siren filter siren(minf:MinF maxF:MaxF spike:S Music)
+   % Might implement Band stop filter bandStop(low:L high:H Music)
+   % Might implement CrossFade filter crossFade(duration:T Music1 Music2)
+   % Create Imperial march
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                           Data Type Conversion                            %
@@ -316,7 +321,6 @@ local
    %  
       Sample = {NewCell nil}
       NoteFrequency = {Frequency Note}
-      Pi = 3.14159265359
    in
       for I in {Float.toInt {Float.round SamplingSize * Note.duration}}-1 .. 0; ~1 do
          Sample := 0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/SamplingSize)}|@Sample
@@ -419,16 +423,14 @@ local
 
 
    fun {Clip Low High Music}
-      ReversedMusic = {List.reverse Music}
-      ClippedMusic = {NewCell nil}
-   in
-      for Ai in ReversedMusic do
-         if Ai < Low then ClippedMusic := Low|@ClippedMusic
-         elseif Ai > High then ClippedMusic := High|@ClippedMusic
-         else ClippedMusic := Ai|@ClippedMusic
+      fun {Aux X}
+         if X < Low then Low
+         elseif X > High then High
+         else X
          end
-      end
-      @ClippedMusic
+      end 
+   in
+      {List.map Music Aux}
    end
 
 
@@ -497,6 +499,53 @@ local
       for Ai in SilenceSample do Ai = 0.0 end
       {List.append Sample SilenceSample}
    end 
+
+   fun {Siren MinF MaxF Spike Music}
+      % Coefficients of the transformation A * cos(Bx + C) + D
+      L = {List.length Music}
+
+      A = ~(MaxF-MinF)
+      B = Pi*Spike/{Int.toFloat (L-1)}
+      C = Pi
+      D = ~A + MinF
+
+      F = {List.make L}
+      I = {NewCell 0.0} % Non Declarative
+   in
+      for Fi in F do
+         Fi = A * {Number.abs {Float.cos B*@I+C}} + D
+         I:= @I + 1.0
+      end
+      {VMul F Music}
+   end
+
+   fun {Vibrato Freq Decay Music}
+      L = {List.length Music}
+
+      A = Decay/2.0
+      B = 2.0*Pi*Freq/SamplingSize
+      C = 0.0
+      D = 1.0 - Decay/2.0
+
+      F = {List.make L}
+      I = {NewCell 0.0} % Non Declarative
+   in
+      for Fi in F do
+         Fi = A * {Float.cos B*@I+C} + D
+         I:= @I + 1.0
+      end
+      {VMul F Music}
+   end
+
+   fun {BandStop Low High Music}
+      fun {Aux X} 
+         if {And Low<X X<High} then 0.0
+         else X
+         end
+      end 
+   in
+      {List.map Music Aux}
+   end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                            Music handling tools                           %
@@ -612,6 +661,19 @@ local
                Msample = {Mix P2T M}
             in
                Sample := {List.append @Sample {Cut S F Msample}}
+            end
+         % Custom Filter
+         [] siren(minf:MinF maxf:MaxF spike:S M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Siren MinF MaxF S Msample}}
+            end
+         [] vibrato(frequency:Freq decay:D M) then
+            local
+               Msample = {Mix P2T M}
+            in
+               Sample := {List.append @Sample {Vibrato Freq D Msample}}
             end
          else  
             {Show Part}
