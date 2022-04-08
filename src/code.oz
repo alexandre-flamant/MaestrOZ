@@ -591,19 +591,18 @@ local
 
    fun {Mix P2T Music}
       Sample = {NewCell nil}
+      MSample
    in
       for Part in Music do
          case Part
-         of sample(S) then
-            Sample := {List.append @Sample S}
+         of sample(S) then Sample := {List.append @Sample S}
          [] partition(P) then
             local 
                Partition = {P2T P}
             in
                Sample := {List.append @Sample {List.flatten {List.map Partition ToSample}}}
             end
-         [] wave(FileName) then
-            Sample := {List.append @Sample {Project.readFile FileName}}
+         [] wave(FileName) then Sample := {List.append @Sample {Project.readFile FileName}}
          [] merge(L) then
             local 
                R = {NewCell nil}
@@ -619,65 +618,23 @@ local
                end
                Sample := {List.append @Sample @R}
             end
-         [] reverse(M) then
-            local 
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Reverse Msample}}
+         else
+            MSample = {Mix P2T Part.1}
+            % Filters
+            case Part
+            of reverse(M) then Sample := {List.append @Sample {Reverse MSample}}
+            [] repeat(amount:N M) then Sample := {List.append @Sample {Repeat N MSample}}
+            [] loop(duration:T M) then Sample := {List.append @Sample {Loop T MSample}}
+            [] clip(low:L high:H M) then Sample := {List.append @Sample {Clip L H MSample}}
+            [] echo(delay:T decay:F M) then Sample := {List.append @Sample {Echo T F MSample}}
+            [] fade(start:S out:O M) then Sample := {List.append @Sample {Fade S O MSample }}
+            [] cut(start:S finish:F M) then Sample := {List.append @Sample {Cut S F MSample}}
+            % Custom Filter
+            [] siren(minf:MinF maxf:MaxF spike:S M) then Sample := {List.append @Sample {Siren MinF MaxF S MSample}}
+            [] vibrato(frequency:Freq decay:D M) then Sample := {List.append @Sample {Vibrato Freq D MSample}}
+            [] bandstop(low:Low high:High M) then Sample := {List.append @Sample {BandStop Low High MSample}}
+            else {Show Part} raise 'Not Implemented' end
             end
-         [] repeat(amount:N M) then
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Repeat N Msample}}
-            end
-         [] loop(duration:T M) then
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Loop T Msample}}
-            end
-         [] clip(low:L high:H M) then
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Clip L H Msample}}
-            end
-         [] echo(delay:T decay:F M) then
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Echo T F Msample}}
-            end
-         [] fade(start:S out:O M) then
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Fade S O Msample }}
-            end
-         [] cut(start:S finish:F M) then
-
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Cut S F Msample}}
-            end
-         % Custom Filter
-         [] siren(minf:MinF maxf:MaxF spike:S M) then
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Siren MinF MaxF S Msample}}
-            end
-         [] vibrato(frequency:Freq decay:D M) then
-            local
-               Msample = {Mix P2T M}
-            in
-               Sample := {List.append @Sample {Vibrato Freq D Msample}}
-            end
-         else  
-            {Show Part}
-            raise 'Not Implemented' end
          end
       end
       @Sample

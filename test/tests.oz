@@ -297,6 +297,13 @@ in
    _ = {Project.run Mix P2T Music 'sample/vibrato.wav'}
 end 
 
+proc {TestBandStop P2T Mix}
+   Music = [bandstop(low:0.25 high:0.6 [sample([0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0])])]
+   Expectation = [0.0 0.1 0.2 0.0 0.0 0.0 0.6 0.7 0.8 0.9 1.0]
+in
+   {AssertEquals {Mix P2T Music} Expectation '   TestBandStop failed'}
+end
+
 proc {TestMix P2T Mix}
    {TestSamples P2T Mix}
    {TestPartition P2T Mix}
@@ -311,6 +318,7 @@ proc {TestMix P2T Mix}
    {TestCut P2T Mix}
    {TestSiren P2T Mix}
    {TestVibrato P2T Mix}
+   {TestBandStop P2T Mix}
    {AssertEquals {Mix P2T nil} nil 'nil music'}
 end
 
