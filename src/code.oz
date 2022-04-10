@@ -51,6 +51,9 @@ local
                  sharp:false
                  duration:1.0
                instrument: none)
+         else
+            {Show Note}
+            raise 'Incorrect note' end
          end
       else
          {Show Note}
@@ -256,23 +259,28 @@ local
    %  
 
       ReversedPartition = {List.reverse Partition}
-      FlatPartition = {NewCell nil}
-   in
-      for PartitionItem in ReversedPartition do
-         case PartitionItem
-         of duration(seconds:T P) then
-            FlatPartition := {List.append {Duration T {PartitionToTimedList P}} @FlatPartition}
-         [] stretch(factor:F P) then
-            FlatPartition := {List.append {Stretch F {PartitionToTimedList P}} @FlatPartition}
-         [] drone(note:Note amount:N) then
-            FlatPartition := {List.append {Drone {ToExtended Note} N} @FlatPartition}
-         [] transpose(semitones:N P) then
-            FlatPartition := {List.append {Transpose N {PartitionToTimedList P}} @FlatPartition}
-         else
-            FlatPartition := {ToExtended PartitionItem}|@FlatPartition
-         end   
+
+      fun {Aux Partition Acc}
+         case Partition
+         of PartitionItem|T then
+            case PartitionItem
+            of duration(seconds:Time P) then
+               {Aux T {List.append {Duration Time {PartitionToTimedList P}} Acc}}
+            [] stretch(factor:F P) then
+               {Aux T {List.append {Stretch F {PartitionToTimedList P}} Acc}}
+            [] drone(note:Note amount:N) then
+               {Aux T {List.append {Drone {ToExtended Note} N} Acc}}
+            [] transpose(semitones:N P) then
+               {Aux T {List.append {Transpose N {PartitionToTimedList P}} Acc}}
+            else
+               {Aux T {ToExtended PartitionItem}|Acc}
+            end
+         [] nil then Acc   
+         else {Show Partition} raise 'Wrong partition item' end
+         end
       end
-      @FlatPartition
+   in
+      {Aux ReversedPartition nil}
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -363,7 +371,7 @@ local
    %  
       Sample = {List.make {Float.toInt {Float.round SamplingSize * Silence.duration}}}
    in
-      for Ai in Sample do Ai = 0.0 end
+      {List.ForAll Sample proc{$ Ai} Ai = 0.0 end}
       Sample
    end
 
@@ -434,7 +442,7 @@ local
    %    P2T (Function)
    %        Function that returns the timed partition of a partition
    %    Partition
-   %        Parition to compute the sample of
+   %        Partition to compute the sample of
    %
    % Return: (List(Float))
    %    Sample of the partition
@@ -469,6 +477,7 @@ local
    in
       {Aux L nil}
    end
+
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                                 Filters                                   %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -579,10 +588,10 @@ local
    %    Music with an echo
    % 
       %L = {List.length Music}
-      DelayedMusic = {NewCell Music}
+      SilenceSample = {List.make {Float.toInt Delay * SamplingSize}}
    in
-      for I in 1..{Float.toInt Delay * SamplingSize} do DelayedMusic := 0.0|@DelayedMusic end
-      {ScaledVSum Music 1.0 @DelayedMusic Decay}
+      {List.forAll SilenceSample proc {$ Ai} Ai = 0.0 end}
+      {ScaledVSum Music 1.0 {List.append SilenceSample Music} Decay}
    end
 
    fun {Fade Start Out Music}
@@ -606,38 +615,29 @@ local
                      (L-{Float.toInt (Start + Out) * SamplingSize}) 
                      MiddleSample
                      OutMusic}
-      I = {NewCell 0.0}
       StartFactor = {List.make {List.length StartMusic}}
       OutFactor = {List.make {List.length OutMusic}}
       StartSample OutSample
    in
       % Fading the end if the sample
-      I := 0.0
       local
          % Affine Transformation f(x) = A*x + B
          % Such that f(L) = 0 and f(L-SamplingSize*Out) = 1
          B = 0.0
          A = 1.0/(SamplingSize*Start)
       in
-         for Ai in StartFactor do	 
-            Ai = A * @I + B
-            I := @I + 1.0
-         end
+         {List.forAllInd StartFactor proc {$ I Fi} Fi = A * {Int.toFloat I-1} + B end}
       end
       StartSample = {VMul StartMusic StartFactor}
 
       % Fading at the start of the sample
-      I := 1.0
       local
          % Affine Transformation f(x) = A*x + B
          % Such that f(0) = 0 and f(SamplingSize*Start + 1) = 1
          B = 1.0
          A = ~1.0/(SamplingSize*Out)
       in
-         for Ai in OutFactor do	 
-            Ai = A * @I + B
-            I := @I + 1.0
-         end
+         {List.forAllInd OutFactor proc {$ I Fi} Fi = A * {Int.toFloat I} + B end}
       end
       OutSample = {VMul OutMusic OutFactor}
 
@@ -661,13 +661,13 @@ local
    %
       L = {List.length Music}
       Sample
-      SilenceSample
+      SilenceSample = {List.make {Max 0 ({Float.toInt (Finish) * SamplingSize} - L - 1)}}
    in
+      {List.forAll SilenceSample proc {$ Ai} Ai = 0.0 end}
       {List.takeDrop {List.takeDrop Music ({Float.toInt Start * SamplingSize}) _} 
                      ({Float.toInt (Finish - Start) * SamplingSize - 1.0}) 
                      Sample _}
-      SilenceSample = {List.make {Max 0 ({Float.toInt (Finish) * SamplingSize} - L - 1)}}
-      for Ai in SilenceSample do Ai = 0.0 end
+
       {List.append Sample SilenceSample}
    end 
 
@@ -693,7 +693,7 @@ local
    %    Alarm-like music
    %
 
-      % Coefficients of the transformation A * cos(Bx + C) + D
+      % Coefficients of the transformation A * abs(cos(Bx + C)) + D
       L = {List.length Music}
 
       A = ~(MaxF-MinF)
@@ -701,13 +701,8 @@ local
       C = Pi
       D = ~A + MinF
 
-      F = {List.make L}
-      I = {NewCell 0.0} % Non Declarative
+      F = {List.mapInd Music fun{$ I _} A * {Number.abs {Float.cos B*{Int.toFloat I}+C}} + D end}
    in
-      for Fi in F do
-         Fi = A * {Number.abs {Float.cos B*@I+C}} + D
-         I:= @I + 1.0
-      end
       {VMul F Music}
    end
 
@@ -726,20 +721,15 @@ local
    % Return: (List(Float))
    %    Music with vibration
    %
-      L = {List.length Music}
 
+      % Coefficients of the transformation A * cos(Bx + C) + D
       A = Decay/2.0
       B = 2.0*Pi*Freq/SamplingSize
       C = 0.0
       D = 1.0 - Decay/2.0
 
-      F = {List.make L}
-      I = {NewCell 0.0} % Non Declarative
+      F = {List.mapInd Music fun{$ I _} A * {Float.cos B*{Int.toFloat I}+C} + D end}
    in
-      for Fi in F do
-         Fi = A * {Float.cos B*@I+C} + D
-         I:= @I + 1.0
-      end
       {VMul F Music}
    end
 
@@ -856,36 +846,36 @@ local
    %    Sample of the music as a list of floats bound to [~1.0, 1.0].
    %  
 
-      Sample = {NewCell nil} % Non-declarative for performance and readability
-      MSample
-   in
-      for Part in Music do
+      fun {Aux Part}
+         MSample
+      in
          case Part
-         of sample(S)      then Sample := {List.append @Sample S}
-         [] partition(P)   then Sample := {List.append @Sample {PartitionToSample P2T P}}
-         [] wave(FileName) then Sample := {List.append @Sample {Project.readFile FileName}}
-         [] merge(L)       then Sample := {List.append @Sample {MergeToSample P2T L}}
+         of sample(S)      then S
+         [] partition(P)   then {PartitionToSample P2T P}
+         [] wave(FileName) then {Project.readFile FileName}
+         [] merge(L)       then {MergeToSample P2T L}
          else % Filters
             MSample = {Mix P2T Part.1}
             % Default Filters
             case Part
-            of reverse(_)              then Sample := {List.append @Sample {Reverse MSample}}
-            [] repeat(amount:N _)      then Sample := {List.append @Sample {Repeat N MSample}}
-            [] loop(duration:T _)      then Sample := {List.append @Sample {Loop T MSample}}
-            [] clip(low:L high:H _)    then Sample := {List.append @Sample {Clip L H MSample}}
-            [] echo(delay:T decay:F _) then Sample := {List.append @Sample {Echo T F MSample}}
-            [] fade(start:S out:O _)   then Sample := {List.append @Sample {Fade S O MSample }}
-            [] cut(start:S finish:F _) then Sample := {List.append @Sample {Cut S F MSample}}
+            of reverse(_)              then {Reverse MSample}
+            [] repeat(amount:N _)      then {Repeat N MSample}
+            [] loop(duration:T _)      then {Loop T MSample}
+            [] clip(low:L high:H _)    then {Clip L H MSample}
+            [] echo(delay:T decay:F _) then {Echo T F MSample}
+            [] fade(start:S out:O _)   then {Fade S O MSample}
+            [] cut(start:S finish:F _) then {Cut S F MSample}
             % Custom Filters
-            [] siren(minf:MinF maxf:MaxF spike:S _) then Sample := {List.append @Sample {Siren MinF MaxF S MSample}}
-            [] vibrato(frequency:Freq decay:D _)    then Sample := {List.append @Sample {Vibrato Freq D MSample}}
-            [] bandstop(low:Low high:High _)        then Sample := {List.append @Sample {BandStop Low High MSample}}
-            
-            else {Show Part} raise 'Not Implemented' end
+            [] siren(minf:MinF maxf:MaxF spike:S _) then {Siren MinF MaxF S MSample}
+            [] vibrato(frequency:Freq decay:D _)    then {Vibrato Freq D MSample}
+            [] bandstop(low:Low high:High _)        then {BandStop Low High MSample}
+
+            else {Show Part} raise 'Filter not Implemented' end
             end
          end
       end
-      @Sample
+   in
+      {List.flatten {Map Music Aux}}
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -896,13 +886,13 @@ local
    Start
 
    % Uncomment next line to insert your tests.
-   %\insert 'test/tests.oz'
+   \insert 'test/tests.oz'
    % !!! Remove this before submitting.
 in
    Start = {Time}
 
    % Uncomment next line to run your tests.
-   %{Test Mix PartitionToTimedList}
+   {Test Mix PartitionToTimedList}
 
    % Add variables to this list to avoid "local variable used only once"
    % warnings.
@@ -910,7 +900,7 @@ in
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
-   _ = {Project.run Mix PartitionToTimedList Music 'sample/out.wav'}
+   %_ = {Project.run Mix PartitionToTimedList Music 'sample/out.wav'}
  
    % Shows the total time to run your code.
    {Browse {IntToFloat {Time}-Start} / 1000.0}
