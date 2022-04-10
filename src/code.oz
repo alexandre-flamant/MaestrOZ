@@ -13,7 +13,7 @@ local
    
    Pi = 3.14159265359
    SamplingSize = 44100.0
-   Smoothing = false
+   Smoothing = true
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                           Data Type Conversion                            %
@@ -736,30 +736,18 @@ local
       {VMul F Music}
    end
 
-   fun {BandStop Low High Music}
-   %
-   % Clip a music so it's elements are bounded to ~1.0,Low][High, 1.0 domain.
-   % If a value is outside the domain it is set to 0.0.
-   % Effectively the opposite of clip effect.
-   %
-   % Args:
-   %    Low (Float)
-   %        Lower bound of the clipping domain
-   %    High (Float)
-   %        Higher bound of the clipping domain
-   %    Music (List(Float))
-   %        Music as a list of sample
-   %
-   % Return: (List(Float))
-   %    Clipped Music
-   % 
-      fun {Aux X} 
-         if {And Low<X X<High} then 0.0
-         else X
-         end
-      end 
+   fun{CrossFade T M1 M2}
+      {Show 'Crossfade starts'}
+      M1Faded = {Fade 0.0 T M1}
+      {Show 'ok M1'}
+      M2Faded = {Fade T 0.0 M2}
+      {Show 'ok M2'}
+      Silence = {List.make ({List.length M1} - {Float.toInt T*SamplingSize})}
+      {Show 'Silence Ok'}
    in
-      {List.map Music Aux}
+      {List.forAll Silence proc {$ Ai} Ai = 0.0 end}
+      {Show 'zeroing ok'}
+      {ScaledVSum M1Faded 1.0 {List.append Silence M2Faded} 1.0}
    end
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -871,8 +859,13 @@ local
             % Custom Filters
             [] siren(minf:MinF maxf:MaxF spike:S _) then {Siren MinF MaxF S MSample}
             [] vibrato(frequency:Freq decay:D _)    then {Vibrato Freq D MSample}
-            [] bandstop(low:Low high:High _)        then {BandStop Low High MSample}
-
+            [] crossfade(seconds:T _ M2)            then
+               local
+                  M2Sample = {Mix P2T M2}
+               in
+                  {CrossFade T MSample M2Sample}
+               end
+            
             else {Show Part} raise 'Filter not Implemented' end
             end
          end
@@ -885,17 +878,17 @@ local
    %                            Boiler plate code                              %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   Music = {Project.load 'sample/joyfast.dj.oz'}
+   Music = {Project.load 'sample/crossfade.dj.oz'}
    Start
 
    % Uncomment next line to insert your tests.
-   \insert 'test/tests.oz'
+   % \insert 'test/tests.oz'
    % !!! Remove this before submitting.
 in
    Start = {Time}
 
    % Uncomment next line to run your tests.
-   {Test Mix PartitionToTimedList}
+   % {Test Mix PartitionToTimedList}
 
    % Add variables to this list to avoid "local variable used only once"
    % warnings.
@@ -903,7 +896,7 @@ in
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
-   %_ = {Project.run Mix PartitionToTimedList Music 'sample/out.wav'}
+   _ = {Project.run Mix PartitionToTimedList Music 'sample/crossfade.wav'}
  
    % Shows the total time to run your code.
    {Browse {IntToFloat {Time}-Start} / 1000.0}
