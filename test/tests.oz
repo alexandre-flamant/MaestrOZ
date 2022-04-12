@@ -167,7 +167,7 @@ end
 % TEST Mix
 proc {TestSamples P2T Mix}
    Expectation = [0.5 0.4 0.3 0.2 0.1 0.0 ~0.1 ~0.2 ~0.3 ~0.4 ~0.5]
-   Music = [sample(Expectation)]
+   Music = [samples(Expectation)]
 in
    {AssertEquals {Mix P2T Music} Expectation '   TestSamples failed'}
 end
@@ -191,9 +191,9 @@ in
 end
 
 proc {TestMerge P2T Mix}
-   Music = [merge([0.5#[sample([1.0 0.8 1.0 0.4 0.2 0.0])] 
-                   0.2#[sample([~1.0 ~1.0 ~1.0 ~1.0])]
-                   0.06#[sample([1.0 1.0]) sample([1.0 1.0 1.0 1.0])]])]
+   Music = [merge([0.5#[samples([1.0 0.8 1.0 0.4 0.2 0.0])] 
+                   0.2#[samples([~1.0 ~1.0 ~1.0 ~1.0])]
+                   0.06#[samples([1.0 1.0]) samples([1.0 1.0 1.0 1.0])]])]
    Expectation = [0.36 0.26 0.36 0.06 0.16 0.06]
 in
    %for X in {Mix P2T Music} do {Show {Float.is X}} end 
@@ -201,27 +201,27 @@ in
 end
 
 proc {TestReverse P2T Mix}
-   Music = [reverse([sample([0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0])])]
+   Music = [reverse([samples([0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0])])]
    Expectation = [1.0 0.9 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.0]
 in
    {AssertEquals {Mix P2T Music} Expectation '   TestReverse failed'}
 end
 
 proc {TestRepeat P2T Mix}
-   Music = [repeat(amount: 3 [sample([0.3 0.1 0.4])])]
+   Music = [repeat(amount: 3 [samples([0.3 0.1 0.4])])]
    Expectation = [0.3 0.1 0.4 0.3 0.1 0.4 0.3 0.1 0.4]
 in
    {AssertEquals {Mix P2T Music} Expectation '   TestRepeat failed'}
 end
 
 proc {TestLoop P2T Mix}
-   Music = [loop(duration:2.0 [sample([0.3 0.1 0.4])])]
+   Music = [loop(seconds:2.0 [samples([0.3 0.1 0.4])])]
 in
    {AssertEquals {List.length {Mix P2T Music}} 2*44100 '   TestLoop failed'}
 end
 
 proc {TestClip P2T Mix}
-   Music = [clip(low:~0.05 high:0.32 [sample([0.5 0.4 0.3 0.2 0.1 0.0 ~0.1 ~0.2 ~0.3 ~0.4 ~0.5])])]
+   Music = [clip(low:~0.05 high:0.32 [samples([0.5 0.4 0.3 0.2 0.1 0.0 ~0.1 ~0.2 ~0.3 ~0.4 ~0.5])])]
    Expectation = [0.32 0.32 0.3 0.2 0.1 0.0 ~0.05 ~0.05 ~0.05 ~0.05 ~0.05]
 in
    {AssertEquals {Mix P2T Music} Expectation '   TestClip failed'}
@@ -236,48 +236,52 @@ in
 end
 
 proc {TestFade P2T Mix}
-   Music1 = [fade(start: 2.0/44100.0 out:8.0/44100.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+   Music1 = [fade(start: 2.0/44100.0 out:8.0/44100.0 [samples([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                                               1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                                               1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
    Expectation1 = [0.0 0.5 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 0.875 0.75 0.625 0.5 0.375 0.25 0.125 0.0]
 
-   Music2 = [fade(start: 0.0 out:8.0/44100.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+   Music2 = [fade(start: 0.0 out:8.0/44100.0 [samples([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                                       1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                                       1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
    Expectation2 = [1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 0.875 0.75 0.625 0.5 0.375 0.25 0.125 0.0]
 
-   Music3 = [fade(start: 2.0/44100.0 out:0.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+   Music3 = [fade(start: 2.0/44100.0 out:0.0 [samples([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                                       1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                                       1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
    Expectation3 = [0.0 0.5 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0]
                                    
-   Music4 = [fade(start: 0.0 out:0.0 [sample([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+   Music4 = [fade(start: 0.0 out:0.0 [samples([1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                               1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                                               1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])])]
    Expectation4 = [1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
                    1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0]
+   
+   Music5 =[fade(1:[repeat(1:[samples([1.0])] amount:12)] out:5.0/44100.0 start:5.0/44100.0)]
+   Expectation5 = [0.0 2000.0 4000.0 6000.0 8000.0 10000.0 10000.0 8000.0 6000.0 4000.0 2000.0 0.0]
 in
    {AssertEquals {Mix P2T Music1} Expectation1 '   TestFade failed'}
    {AssertEquals {Mix P2T Music2} Expectation2 '   TestFade failed'}
    {AssertEquals {Mix P2T Music3} Expectation3 '   TestFade failed'}
    {AssertEquals {Mix P2T Music4} Expectation4 '   TestFade failed'}
+   {AssertEquals {Mix P2T Music5} Expectation5 '   TestFade failed'}
 end
 
 proc {TestCut P2T Mix}
-   Music1 = [cut(start:5.0/44100.0 finish:20.0/44100.0 [sample([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
+   Music1 = [cut(start:5.0/44100.0 finish:20.0/44100.0 [samples([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
    Expectation1 = [6.0 7.0 8.0 9.0 10.0 11.0 12.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
 
-   Music2 = [cut(start:5.0/44100.0 finish:9.0/44100.0 [sample([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
-   Expectation2 = [6.0 7.0 8.0]
+   Music2 = [cut(start:5.0/44100.0 finish:9.0/44100.0 [samples([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
+   Expectation2 = [6.0 7.0 8.0 9.0]
 
-   Music3 = [cut(start:0.0/44100.0 finish:13.0/44100.0 [sample([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
+   Music3 = [cut(start:0.0/44100.0 finish:13.0/44100.0 [samples([1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])])]
    Expectation3 = [1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0]
 in
    {AssertEquals {Mix P2T Music1} Expectation1 '   TestCut failed with 5 20'}
@@ -297,12 +301,6 @@ in
    _ = {Project.run Mix P2T Music 'sample/vibrato.wav'}
 end 
 
-proc {TestBandStop P2T Mix}
-   Music = [bandstop(low:0.25 high:0.6 [sample([0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0])])]
-   Expectation = [0.0 0.1 0.2 0.0 0.0 0.0 0.6 0.7 0.8 0.9 1.0]
-in
-   {AssertEquals {Mix P2T Music} Expectation '   TestBandStop failed'}
-end
 
 proc {TestMix P2T Mix}
    {TestSamples P2T Mix}
@@ -318,7 +316,6 @@ proc {TestMix P2T Mix}
    {TestCut P2T Mix}
    {TestSiren P2T Mix}
    {TestVibrato P2T Mix}
-   {TestBandStop P2T Mix}
    {AssertEquals {Mix P2T nil} nil 'nil music'}
 end
 

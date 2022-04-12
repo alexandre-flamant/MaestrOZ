@@ -13,7 +13,7 @@ local
    
    Pi = 3.14159265359
    SamplingSize = 44100.0
-   Smoothing = true
+   Smoothing = false
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                           Data Type Conversion                            %
@@ -44,6 +44,7 @@ local
       % That is if the input is already extended nothing is done
       [] note(name:_ octave:_ sharp:_ duration:_ instrument:_) then
          Note
+      [] silence then silence(duration:1.0)
       [] Atom then
          case {AtomToString Atom}
          of [_] then
@@ -75,7 +76,6 @@ local
    % Return;
    %    Extended chord
    %
-
       {Map Chord NoteToExtended}
    end
    
@@ -119,6 +119,10 @@ local
                                        of note then T + PartitionItem.duration
                                        [] silence then T + PartitionItem.duration
                                        [] '|' then T + PartitionItem.1.duration
+                                       [] nil then 0.0
+                                       else
+                                          {Show PartitionItem}
+                                          raise 'Incorrect item in Duration' end
                                        end
                                     end
                0.0} % Initial partition duration
@@ -132,6 +136,7 @@ local
             {Record.adjoinAt PartitionItem duration (PartitionItem.duration * T/InitT)}
          [] '|' then % If it is a chord we change the duration of all notes by mapping
             {List.map PartitionItem fun{$ Note} {Record.adjoinAt Note duration (Note.duration * T/InitT)} end}
+         [] nil then nil
          else
             raise 'Duration transformation error' end
          end
@@ -346,7 +351,7 @@ local
       Sample = {List.make {Float.toInt {Float.round SamplingSize * Note.duration}}}
       NoteFrequency = {Frequency Note}
    in
-      {List.forAllInd Sample proc{$ I Ai} Ai = 0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I}/SamplingSize)} end}
+      {List.forAllInd Sample proc{$ I Ai} Ai = 0.5 * {Float.sin (2.0 * Pi * NoteFrequency * {Int.toFloat I-1}/SamplingSize)} end}
       
       if Smoothing then
          local
@@ -542,7 +547,7 @@ local
       MusicTuple = {List.toTuple '#' Music}
       Sample = {List.make {Float.toInt (SamplingSize * T)}}
    in
-      {List.forAllInd Sample proc {$ I Ai} Ai = MusicTuple.((I mod Length) + 1) end}
+      {List.forAllInd Sample proc {$ I Ai} Ai = MusicTuple.(((I-1) mod Length) + 1) end}
       Sample
    end
 
@@ -614,8 +619,8 @@ local
    %
       L = {List.length Music}
       StartMusic MiddleSample OutMusic
-      {List.takeDrop {List.takeDrop Music {Float.toInt Start * SamplingSize} StartMusic} 
-                     (L-{Float.toInt (Start + Out) * SamplingSize}) 
+      {List.takeDrop {List.takeDrop Music {Float.toInt {Float.round Start * SamplingSize}} StartMusic} 
+                     (L-{Float.toInt {Float.round (Start + Out) * SamplingSize}}) 
                      MiddleSample
                      OutMusic}
       StartFactor = {List.make {List.length StartMusic}}
@@ -643,7 +648,9 @@ local
          {List.forAllInd OutFactor proc {$ I Fi} Fi = A * {Int.toFloat I} + B end}
       end
       OutSample = {VMul OutMusic OutFactor}
-
+      {Show StartSample}
+      {Show MiddleSample}
+      {Show OutSample}
       {List.flatten [StartSample MiddleSample OutSample]}
    end
 
@@ -668,7 +675,7 @@ local
    in
       {List.forAll SilenceSample proc {$ Ai} Ai = 0.0 end}
       {List.takeDrop {List.takeDrop Music ({Float.toInt Start * SamplingSize}) _} 
-                     ({Float.toInt (Finish - Start) * SamplingSize - 1.0}) 
+                     ({Float.toInt (Finish - Start) * SamplingSize}) 
                      Sample _}
 
       {List.append Sample SilenceSample}
@@ -737,16 +744,11 @@ local
    end
 
    fun{CrossFade T M1 M2}
-      {Show 'Crossfade starts'}
       M1Faded = {Fade 0.0 T M1}
-      {Show 'ok M1'}
       M2Faded = {Fade T 0.0 M2}
-      {Show 'ok M2'}
       Silence = {List.make ({List.length M1} - {Float.toInt T*SamplingSize})}
-      {Show 'Silence Ok'}
    in
       {List.forAll Silence proc {$ Ai} Ai = 0.0 end}
-      {Show 'zeroing ok'}
       {ScaledVSum M1Faded 1.0 {List.append Silence M2Faded} 1.0}
    end
 
@@ -841,7 +843,7 @@ local
          MSample
       in
          case Part
-         of sample(S)      then S
+         of samples(S)     then S
          [] partition(P)   then {PartitionToSample P2T P}
          [] wave(FileName) then {Project.readFile FileName}
          [] merge(L)       then {MergeToSample P2T L}
@@ -851,10 +853,12 @@ local
             case Part
             of reverse(_)              then {Reverse MSample}
             [] repeat(amount:N _)      then {Repeat N MSample}
-            [] loop(duration:T _)      then {Loop T MSample}
+            [] loop(seconds:T _)       then {Loop T MSample}
             [] clip(low:L high:H _)    then {Clip L H MSample}
             [] echo(delay:T decay:F _) then {Echo T F MSample}
-            [] fade(start:S out:O _)   then {Fade S O MSample}
+            [] fade(start:S out:O _)   then
+                    {Show Part}
+                    {Fade S O MSample}
             [] cut(start:S finish:F _) then {Cut S F MSample}
             % Custom Filters
             [] siren(minf:MinF maxf:MaxF spike:S _) then {Siren MinF MaxF S MSample}
@@ -878,7 +882,7 @@ local
    %                            Boiler plate code                              %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   Music = {Project.load 'sample/crossfade.dj.oz'}
+   Music = {Project.load 'joy.dj.oz'}
    Start
 
    % Uncomment next line to insert your tests.
@@ -896,7 +900,7 @@ in
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
-   _ = {Project.run Mix PartitionToTimedList Music 'sample/crossfade.wav'}
+   _ = {Project.run Mix PartitionToTimedList Music 'out.wav'}
  
    % Shows the total time to run your code.
    {Browse {IntToFloat {Time}-Start} / 1000.0}
