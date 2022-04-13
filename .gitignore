@@ -1,8 +1,11 @@
 project_statement.pdf
 _other/
+sample/test.dj.oz
 sample/*.wav
 !sample/out.wav
 !sample/vibrato.wav
 !sample/siren.wav
 !sample/joysmooth.wav
 !sample/crossfade.wav
+!sample/creative.wav
+!sample/exameple.wav

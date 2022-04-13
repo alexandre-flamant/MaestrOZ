@@ -13,7 +13,7 @@ local
    
    Pi = 3.14159265359
    SamplingSize = 44100.0
-   Smoothing = false
+   Smoothing = true
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %                           Data Type Conversion                            %
@@ -363,7 +363,7 @@ local
          Sample
       end
    end
-
+   
 
    fun {SilenceSample Silence}
    %
@@ -379,7 +379,7 @@ local
    %  
       Sample = {List.make {Float.toInt {Float.round SamplingSize * Silence.duration}}}
    in
-      {List.ForAll Sample proc{$ Ai} Ai = 0.0 end}
+      {List.forAll Sample proc{$ Ai} Ai = 0.0 end}
       Sample
    end
 
@@ -648,9 +648,6 @@ local
          {List.forAllInd OutFactor proc {$ I Fi} Fi = A * {Int.toFloat I} + B end}
       end
       OutSample = {VMul OutMusic OutFactor}
-      {Show StartSample}
-      {Show MiddleSample}
-      {Show OutSample}
       {List.flatten [StartSample MiddleSample OutSample]}
    end
 
@@ -856,9 +853,7 @@ local
             [] loop(seconds:T _)       then {Loop T MSample}
             [] clip(low:L high:H _)    then {Clip L H MSample}
             [] echo(delay:T decay:F _) then {Echo T F MSample}
-            [] fade(start:S out:O _)   then
-                    {Show Part}
-                    {Fade S O MSample}
+            [] fade(start:S out:O _)   then {Fade S O MSample}
             [] cut(start:S finish:F _) then {Cut S F MSample}
             % Custom Filters
             [] siren(minf:MinF maxf:MaxF spike:S _) then {Siren MinF MaxF S MSample}
@@ -882,7 +877,7 @@ local
    %                            Boiler plate code                              %
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-   Music = {Project.load 'joy.dj.oz'}
+   Music = {Project.load 'sample/creative.dj.oz'}
    Start
 
    % Uncomment next line to insert your tests.
@@ -900,7 +895,7 @@ in
    
    % Calls your code, prints the result and outputs the result to `out.wav`.
    % You don't need to modify this.
-   _ = {Project.run Mix PartitionToTimedList Music 'out.wav'}
+   {Browse {Project.run Mix PartitionToTimedList Music 'sample/creative.wav'}}
  
    % Shows the total time to run your code.
    {Browse {IntToFloat {Time}-Start} / 1000.0}
